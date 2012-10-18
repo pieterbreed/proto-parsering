@@ -4,7 +4,6 @@
   (:gen-class))
 
 (def whitespace-char (token #{\space \newline \tab \return}))
-(def not-close-string (taken #(not=
 
 (defparser whitespace [] (many whitespace-char) (always {:type :whitespace}))
 (defparser whitespace1 [] (many1 whitespace-char) (always {:type :whitespace}))
@@ -13,7 +12,8 @@
   (either (>> (choice (string "true")
                       (string "True")
                       (string "1"))
-              (always {:value {:type :bool
+              (always {:type :value
+                       :value {:type :bool
                                :value true}}))
           (>> (choice (string "false")
                       (string "False")
@@ -22,34 +22,61 @@
                        :value {:type :bool
                                :value false}}))))
 
-(defparser string []
-  (let->> (between (char \")
-                   (char \")
-                   (
+(defn -make-char-sequence-test [chars result]
+  (list
+   `attempt
+   (conj
+    (concat (map #(list `the.parsatron/char %) chars)
+            (list (list `always result)))
+    `>>)))
+
+(defmacro string-char-options [& args]
+  (let [pairs (partition 2 args)
+        choices (map #(make-char-sequence-test (first %) (second %)) pairs)]
+    (conj choices `choice)))
+
+
+(defparser string-char []
+  (choice (string-char-options [\\ \\] \\
+                               [\\ \n] \newline
+                               [\\ \t] \tab
+                               [\\ \r] \return
+                               [\\ \"] \")
+          (>> (char \") (never))
+          (any-char)))
+
+
+;;   (choice (attempt (>> (char \\) (char \\)))
+;;           (>> (char \\) (char \n) (always \newline))
+;;           (>> (char \\) (char \t) (always \tab))
+;;           (>> (char \\) (char \r) (always \return))
+;;           (>> (char \\) (char \") (always \"))
+;;           (>> (char \") (never))
+;;           (>> (any-char))))
   
 
-(defparser namespace-string []
-  (let->> [firstpart (many1 (letter))
-           other (many (let->> [_ (char \.)
-                                wordpart (many1 (letter))]
-                               (always (apply str wordpart))))]
-          (always (-> (apply str firstpart)
-                      vector
-                      (concat other)
-                      vec))))
+;; (defparser namespace-string []
+;;   (let->> [firstpart (many1 (letter))
+;;            other (many (let->> [_ (char \.)
+;;                                 wordpart (many1 (letter))]
+;;                                (always (apply str wordpart))))]
+;;           (always (-> (apply str firstpart)
+;;                       vector
+;;                       (concat other)
+;;                       vec))))
                  
 
-(defparser package-declaration []
-  (whitespace)
-  (let->> [ns-vector (either (between (>> (string "package") (whitespace1))
-                                      (char \;)
-                                      (namespace-string))
-                             (always []))]
-          (always {:type :namespace
-                   :namespace ns-vector})))
-
-;; (defparser option-parser []
+;; (defparser package-declaration []
 ;;   (whitespace)
+;;   (let->> [ns-vector (either (between (>> (string "package") (whitespace1))
+;;                                       (char \;)
+;;                                       (namespace-string))
+;;                              (always []))]
+;;           (always {:type :namespace
+;;                    :namespace ns-vector})))
+
+;; ;; (defparser option-parser []
+;; ;;   (whitespace)
   
   
            
@@ -57,7 +84,7 @@
   
   
 
-(defn -main
-  "I don't do a whole lot ... yet."
-  [& args]
-  (println "Hello, World!"))
+;; (defn -main
+;;   "I don't do a whole lot ... yet."
+;;   [& args]
+;;   (println "Hello, World!"))

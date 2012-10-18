@@ -17,13 +17,13 @@
   (testing "bool values are parsed"
     (are [input] (= {:type :value
                      :value {:type :bool
-                             :value true}} (the.parsatron/run (bool) input))
+                             :value true}} (the.parsatron/run (bool-value) input))
          "true"
          "True"
          "1")
     (are [input] (= {:type :value
                      :value {:type :bool
-                             :value false}} (the.parsatron/run (bool) input))
+                             :value false}} (the.parsatron/run (bool-value) input))
          "false"
          "False"
          "0")))
@@ -39,7 +39,13 @@
          \a "a"
          \b "b")))
 
-         
+(deftest string-test
+  (testing "whether string values can be parsed"
+    (is (= {:type :value
+            :value {:type :string
+                    :value "testing"}}
+           (the.parsatron/run (string-value) "\"testing\"")))))
+  
          
 
 (run-all-tests #"parsering.core-test")

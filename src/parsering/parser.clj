@@ -43,6 +43,15 @@
           (always {:type :value
                    :value {:type :int
                            :value (parse-int (apply str v))}})))
+
+(defparser symbol-value []
+  (let->> [frst (letter)
+           rst (many (choice (letter)
+                             (digit)
+                             (char \_)))]
+          (always {:type :symbol
+                   :value (str frst (apply str rst))})))
+
 (defn -flags-item [flag-str]
   (list `attempt
         (list `>>
@@ -54,25 +63,37 @@
     `(choice ~@items)))
 
 (defparser parser []
-  (many (choice (flags "message"
-                       "required" "optional" "repeated"
-                       "double" "float"
-                       "int32" "int64"
-                       "uint32" "uint64"
-                       "sint32" "sint64"
-                       "fixed32" "fixed64"
-                       "sfixed32" "sfixed64"
-                       "bool"
-                       "string"
-                       "bytes"
-                       "{" "}"
-                       "enum"
-                       "="
-                       "import"
-                       "package"
-                       "extend")
-                (int-value)
-                (whitespace1)
-                (string-value))))
+  (let->> [parsed (many (choice
+                         (whitespace1)
+                         (flags "message"
+                                "required" "optional" "repeated"
+                                "double" "float"
+                                "int32" "int64"
+                                "uint32" "uint64"
+                                "sint32" "sint64"
+                                "fixed32" "fixed64"
+                                "sfixed32" "sfixed64"
+                                "bool"
+                                "string"
+                                "bytes"
+                                "="
+                                "enum"
+                                "import"
+                                "package"
+                                "extend")
+                         (attempt (>> (char \;) (always :semicolon)))
+                         (attempt (>> (char \}) (always :close-curly)))
+                         (attempt (>> (char \{) (always :open-curly)))
+                         (int-value)
+                         (string-value)
+                         (symbol-value)))
+           rest (>> (many (any-char)))]
+          (if (< 0 (count rest))
+            (do
+              (println (str "unknown: " (apply str (take 10 rest))))
+              (never))
+            (always (-> parsed
+                        (filter #(not (= :whitespace (:type %)))))))))
+          
 
                        

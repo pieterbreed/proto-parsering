@@ -96,6 +96,20 @@
          "java_multiple_files"
          :symbol
          "true")))
+
+(deftest msg-line-test
+  (testing "that message item lines can be parsed"
+    (are [input
+          modifier]
+         (= {:type :msg-line
+             :value {:modifier modifier}}
+            (the.parsatron/run (msg-line) input))
+
+         "required" :required
+
+         " required" :required
+         "optional" :optional
+         "\t\trepeated" :repeated)))
          
 
 (run-all-tests #"parsering.core-test")

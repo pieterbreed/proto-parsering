@@ -95,7 +95,35 @@
            (always {:type :option
                     :value {:name option-name
                             :value value}})))
+
+(defn -flags-item [flag-str]
+  (list `attempt
+        (list `>>
+              `(string ~flag-str)
+              `(always ~(keyword flag-str)))))
+
+(defmacro flags [& flags]
+  (let [items (map -flags-item flags)]
+    `(choice ~@items)))
   
+
+(defparser msg-line []
+  (let->> [type (>> (whitespace)
+;                    (flags "required" "optional" "repeated")
+                    (choice (attempt (>> (string "required") (always :required)))
+                            (attempt (>> (string "optional") (always :optional)))
+                            (attempt (>> (string "repeated") (always :repeated)))))]
+          (always {:type :msg-line
+                   :value {:modifier type}})))
+  
+
+(defparser message []
+  (let->> [_ (>> (whitespace) (string "message"))
+           msg-name-symbol (>> (whitespace) (symbol-value))
+           _ (>> (whitespace) (char \{))
+           _ (>> (whitespace) (char \}))]
+          (always {:type :message
+                   :value {:name msg-name-symbol}})))
 
 (defn -main
   "I don't do a whole lot ... yet."

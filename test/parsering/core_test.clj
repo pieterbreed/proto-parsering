@@ -13,20 +13,20 @@
          "    "
          "\t  \n")))
 
-(deftest bool-test
-  (testing "bool values are parsed"
-    (are [input] (= {:type :value
-                     :value {:type :bool
-                             :value true}} (the.parsatron/run (bool-value) input))
-         "true"
-         "True"
-         "1")
-    (are [input] (= {:type :value
-                     :value {:type :bool
-                             :value false}} (the.parsatron/run (bool-value) input))
-         "false"
-         "False"
-         "0")))
+;; (deftest bool-test
+;;   (testing "bool values are parsed"
+;;     (are [input] (= {:type :value
+;;                      :value {:type :bool
+;;                              :value true}} (the.parsatron/run (bool-value) input))
+;;          "true"
+;;          "True"`
+;;          "1")
+;;     (are [input] (= {:type :value
+;;                      :value {:type :bool
+;;                              :value false}} (the.parsatron/run (bool-value) input))
+;;          "false"
+;;          "False"
+;;          "0")))
 
 (deftest string-char-test
   (testing "that characters in strings are escaped and that escaped quotes don't terminate the string"
@@ -61,6 +61,17 @@
     (are [input] (thrown? RuntimeException (the.parsatron/run (symbol-value) input))
          "_aoeu"
          "2oeu")))
+
+(deftest value-value-test
+  (testing "that where values are expected, all the types can be parsed"
+    (are [input type value] (= {:type :value
+                                :value {:type type
+                                        :value value}}
+                               (the.parsatron/run (value-value) input))
+         "true" :symbol "true"
+         "False" :symbol "False"
+         "\"testing\"" :string "testing"
+         "symbol" :symbol "symbol")))
          
          
 

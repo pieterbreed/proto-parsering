@@ -8,19 +8,19 @@
 (defparser whitespace [] (many whitespace-char) (always {:type :whitespace}))
 (defparser whitespace1 [] (many1 whitespace-char) (always {:type :whitespace}))
 
-(defparser bool-value []
-  (either (>> (choice (string "true")
-                      (string "True")
-                      (string "1"))
-              (always {:type :value
-                       :value {:type :bool
-                               :value true}}))
-          (>> (choice (string "false")
-                      (string "False")
-                      (string "0"))
-              (always {:type :value
-                       :value {:type :bool
-                               :value false}}))))
+;; (defparser bool-value []
+;;   (either (>> (choice (string "true")
+;;                       (string "True")
+;;                       (string "1"))
+;;               (always {:type :value
+;;                        :value {:type :bool
+;;                                :value true}}))
+;;           (>> (choice (string "false")
+;;                       (string "False")
+;;                       (string "0"))
+;;               (always {:type :value
+;;                        :value {:type :bool
+;;                                :value false}}))))
 
 (defn -make-char-sequence-test [chars result]
   (list
@@ -83,7 +83,9 @@
                            :value (str frst (apply str rst))}})))
 
 (defparser value-value []
-  nil)
+  (choice (symbol-value)
+;          (bool-value)
+          (string-value)))
 
  (defparser option-parser []
    (whitespace)

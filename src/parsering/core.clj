@@ -3,6 +3,9 @@
   (:use [the.parsatron])
   (:gen-class))
 
+(defn parse-int [str]
+  (Integer/parseInt str))
+
 (def whitespace-char (token #{\space \newline \tab \return}))
 
 (defparser whitespace [] (many whitespace-char) (always {:type :whitespace}))
@@ -82,8 +85,15 @@
                    :value {:type :symbol
                            :value (str frst (apply str rst))}})))
 
+(defparser int-value []
+  (let->> [v (many1 (digit))]
+          (always {:type :value
+                   :value {:type :int
+                           :value (parse-int (apply str v))}})))
+
 (defparser value-value []
   (choice (symbol-value)
+          (int-value)
           (string-value)))
 
  (defparser option-parser []
@@ -108,13 +118,29 @@
   
 
 (defparser msg-line []
-  (let->> [type (>> (whitespace)
-;                    (flags "required" "optional" "repeated")
-                    (choice (attempt (>> (string "required") (always :required)))
-                            (attempt (>> (string "optional") (always :optional)))
-                            (attempt (>> (string "repeated") (always :repeated)))))]
+  (let->> [modifier (>> (whitespace)
+                        (flags "required" "optional" "repeated"))
+           value-type (>> (whitespace1)
+                          (flags "double" "float"
+                                 "int32" "int64"
+                                 "uint32" "uint64"
+                                 "sint32" "sint64"
+                                 "fixed32" "fixed64"
+                                 "sfixed32" "sfixed64"
+                                 "bool"
+                                 "string"
+                                 "bytes"))
+           symbol (>> (whitespace1)
+                      (symbol-value))
+           _ (>> (whitespace1)
+                 (char \=))
+           position (>> (whitespace1)
+                        (int-value))]
           (always {:type :msg-line
-                   :value {:modifier type}})))
+                   :value {:modifier modifier
+                           :value-type value-type
+                           :symbol symbol
+                           :position position}})))
   
 
 (defparser message []

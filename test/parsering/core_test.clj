@@ -99,17 +99,63 @@
 
 (deftest msg-line-test
   (testing "that message item lines can be parsed"
+    true))
+    ;; (are [input
+    ;;       modifier
+    ;;       type]
+    ;;      (= {:type :msg-line
+    ;;          :value {:modifier modifier
+    ;;                  :value-type type}}
+    ;;         (the.parsatron/run (msg-line) input))
+
+    ;;      "required int32" :required :int32
+
+    ;;      " required double" :required :double
+         
+    ;;      "optional fixed64" :optional :fixed64
+    ;;      "\t\trepeated\tbytes" :repeated :bytes)))
+
+(deftest int-value-test
+  (testing "that an integer value parses correctly"
+    (are [input value]
+         (= {:type :value
+             :value {:type :int
+                     :value value}}
+            (the.parsatron/run (int-value) input))
+         "43" 43)))
+
+(deftest item-line-test
+  (testing "that messages have lines and that those lines look sane"
     (are [input
-          modifier]
+          modifier
+          value-type
+          symbol-type
+          position]
          (= {:type :msg-line
-             :value {:modifier modifier}}
+             :value {:modifier modifier
+                     :value-type value-type
+                     :symbol {:type :value :value {:type :symbol :value symbol-type}}
+                     :position {:type :value :value {:type :int :value position}}}}
             (the.parsatron/run (msg-line) input))
 
-         "required" :required
+         "optional string query = 1"
+         :optional
+         :string
+         "query"
+         1
 
-         " required" :required
-         "optional" :optional
-         "\t\trepeated" :repeated)))
-         
+         "required double items  = 2"
+         :required
+         :double
+         "items"
+         2
+
+         "repeated int32 query = 101"
+         :repeated
+         :int32
+         "query"
+         101
+
+         )))
 
 (run-all-tests #"parsering.core-test")

@@ -72,7 +72,30 @@
          "False" :symbol "False"
          "\"testing\"" :string "testing"
          "symbol" :symbol "symbol")))
-         
+
+(deftest option-parser-test
+  (testing "that options can be parsed"
+    (are [input
+          symbol-name
+          symbol-type
+          symbol-value] (= {:type :option
+                                        :value
+                                        {:name {:type :value
+                                                :value {:type :symbol
+                                                        :value symbol-name}}
+                                         :value {:type :value
+                                                 :value {:type symbol-type
+                                                         :value symbol-value}}}}
+                                       (the.parsatron/run (option-parser) input))
+         "option java_package = \"com.allangray.model\";"
+         "java_package"
+         :string
+         "com.allangray.model"
+
+         "option java_multiple_files = true;"
+         "java_multiple_files"
+         :symbol
+         "true")))
          
 
 (run-all-tests #"parsering.core-test")

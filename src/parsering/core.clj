@@ -84,23 +84,17 @@
 
 (defparser value-value []
   (choice (symbol-value)
-;          (bool-value)
           (string-value)))
 
  (defparser option-parser []
-   (whitespace)
-   (let->> [_ (string "option")
-            option-name (symbol-value)
-            _ (whitespace)
-            _ (char \=)
-            _ (whitespace)
-            value (value-value)]
-           value))
-  
-  
-           
-  
-  
+   (let->> [_ (>> (whitespace) (string "option"))
+            option-name (>> (whitespace) (symbol-value))
+            _ (>> (whitespace) (char \=))
+            value (>> (whitespace) (value-value))
+            _ (>> (whitespace) (char \;))]
+           (always {:type :option
+                    :value {:name option-name
+                            :value value}})))
   
 
 (defn -main

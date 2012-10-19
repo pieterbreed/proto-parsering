@@ -36,13 +36,15 @@
            (char \")
            (let->> [strvalue (many (string-char))]
                    (always {:type :value
-                            :value {:type :string
-                                    :value (apply str strvalue)}}))))
+                            :value-type :string
+                            :value (apply str strvalue)}))))
+
 (defparser int-value []
   (let->> [v (many1 (digit))]
           (always {:type :value
-                   :value {:type :int
-                           :value (parse-int (apply str v))}})))
+                   :value (parse-int (apply str v))
+                   :value-type :int})))
+
 
 (defparser symbol-value []
   (let->> [frst (letter)
@@ -52,15 +54,22 @@
           (always {:type :symbol
                    :value (str frst (apply str rst))})))
 
-(defn -flags-item [flag-str]
+(defn -flags-item [flag-str flag-symbol-str]
   (list `attempt
         (list `>>
               `(string ~flag-str)
-              `(always ~(keyword flag-str)))))
+              `(always {:type :keyword
+                        :value ~(keyword flag-symbol-str)}))))
 
 (defmacro flags [& flags]
-  (let [items (map -flags-item flags)]
+  (let [items (map #(-flags-item % %) flags)]
     `(choice ~@items)))
+
+(defmacro non-standard-flags [& flags]
+  (let [pairs (partition 2 flags)
+        items (map #(apply -flags-item %) pairs)]
+    `(choice ~@items)))
+    
 
 (defparser parser []
   (let->> [parsed (many (choice
@@ -76,24 +85,29 @@
                                 "bool"
                                 "string"
                                 "bytes"
-                                "="
                                 "enum"
                                 "import"
                                 "package"
                                 "extend")
-                         (attempt (>> (char \;) (always :semicolon)))
-                         (attempt (>> (char \}) (always :close-curly)))
-                         (attempt (>> (char \{) (always :open-curly)))
+                         (non-standard-flags ";" "semicolon"
+                                             "}" "close-curly"
+                                             "{" "open-curly"
+                                             "=" "equals")
                          (int-value)
                          (string-value)
                          (symbol-value)))
            rest (>> (many (any-char)))]
+
           (if (< 0 (count rest))
-            (do
-              (println (str "unknown: " (apply str (take 10 rest))))
-              (never))
-            (always (-> parsed
-                        (filter #(not (= :whitespace (:type %)))))))))
+             (do
+               (println (str "unknown: " (apply str (take 10 rest))))
+               (never))
+             (->> parsed
+                  (filter #(not (= :whitespace (:type %))))
+                  always))))
+                         
+          ;;   (always (-> parsed
+          ;;               (filter #(not (= :whitespace (:type %)))))))))
           
 
                        

@@ -30,18 +30,18 @@
             (list (list `always result)))
     `>>)))
 
-(defmacro string-char-options [& args]
+(defmacro -string-char-options [& args]
   (let [pairs (partition 2 args)
         choices (map #(make-char-sequence-test (first %) (second %)) pairs)]
     (conj choices `choice)))
 
 
 (defparser string-char []
-  (choice (string-char-options [\\ \\] \\
-                               [\\ \n] \newline
-                               [\\ \t] \tab
-                               [\\ \r] \return
-                               [\\ \"] \")
+  (choice (-string-char-options [\\ \\] \\
+                                [\\ \n] \newline
+                                [\\ \t] \tab
+                                [\\ \r] \return
+                                [\\ \"] \")
           (except-char "\"")))
 
 (defparser string-value []
@@ -73,8 +73,27 @@
           (always {:type :namespace
                    :namespace ns-vector})))
 
-;; (defparser option-parser []
-;;   (whitespace)
+(defparser symbol-value []
+  (let->> [frst (letter)
+           rst (many (choice (letter)
+                             (digit)
+                             (char \_)))]
+          (always {:type :value
+                   :value {:type :symbol
+                           :value (str frst (apply str rst))}})))
+
+(defparser value-value []
+  nil)
+
+ (defparser option-parser []
+   (whitespace)
+   (let->> [_ (string "option")
+            option-name (symbol-value)
+            _ (whitespace)
+            _ (char \=)
+            _ (whitespace)
+            value (value-value)]
+           value))
   
   
            

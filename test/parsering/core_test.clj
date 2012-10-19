@@ -45,7 +45,23 @@
             :value {:type :string
                     :value "testing"}}
            (the.parsatron/run (string-value) "\"testing\"")))))
-  
+
+(deftest symbols-test
+  (testing "whether symbols may start with letters, then have many letters and digits and underscores in them"
+    (are [expected input] (= {:type :value
+                              :value {:type :symbol
+                                      :value expected}}
+                             (the.parsatron/run (symbol-value) input))
+         "aoeu" "aoeu"
+         "oeu1" "oeu1"
+         "oeu_oeu" "oeu_oeu")))
+
+(deftest symbols-not-test
+  (testing "that symbols starting with digits or underscores are not valid"
+    (are [input] (thrown? RuntimeException (the.parsatron/run (symbol-value) input))
+         "_aoeu"
+         "2oeu")))
+         
          
 
 (run-all-tests #"parsering.core-test")

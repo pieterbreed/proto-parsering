@@ -32,7 +32,7 @@
 
 (defmacro string-char-options [& args]
   (let [pairs (partition 2 args)
-        choices (map #(-make-char-sequence-test (first %) (second %)) pairs)]
+        choices (map #(make-char-sequence-test (first %) (second %)) pairs)]
     (conj choices `choice)))
 
 
@@ -42,8 +42,7 @@
                                [\\ \t] \tab
                                [\\ \r] \return
                                [\\ \"] \")
-          (>> (attempt (>> (char \") (never))))
-          (any-char)))
+          (except-char "\"")))
 
 (defparser string-value []
   (between (char \")

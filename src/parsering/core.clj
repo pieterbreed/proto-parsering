@@ -3,13 +3,6 @@
   (:use [the.parsatron])
   (:gen-class))
 
-;; (defn parse-int [str]
-;;   (Integer/parseInt str))
-
-;; (def whitespace-char (token #{\space \newline \tab \return}))
-
-;; (defparser whitespace [] (many whitespace-char) (always {:type :whitespace}))
-;; (defparser whitespace1 [] (many1 whitespace-char) (always {:type :whitespace}))
 
 ;; ;; (defparser bool-value []
 ;; ;;   (either (>> (choice (string "true")

@@ -69,45 +69,70 @@
   (let [pairs (partition 2 flags)
         items (map #(apply -flags-item %) pairs)]
     `(choice ~@items)))
-    
+
+(defparser parse-single []
+  (choice
+   (whitespace1)
+   (flags "message"
+          "required" "optional" "repeated"
+          "double" "float"
+          "int32" "int64"
+          "uint32" "uint64"
+          "sint32" "sint64"
+          "fixed32" "fixed64"
+          "sfixed32" "sfixed64"
+          "bool"
+          "string"
+          "bytes"
+          "enum"
+          "import"
+          "package"
+          "extend")
+   (non-standard-flags ";" "semicolon"
+                       "}" "close-curly"
+                       "{" "open-curly"
+                       "=" "equals")
+   (int-value)
+   (string-value)
+   (symbol-value)))
+
 
 (defparser parser []
-  (let->> [parsed (many (choice
-                         (whitespace1)
-                         (flags "message"
-                                "required" "optional" "repeated"
-                                "double" "float"
-                                "int32" "int64"
-                                "uint32" "uint64"
-                                "sint32" "sint64"
-                                "fixed32" "fixed64"
-                                "sfixed32" "sfixed64"
-                                "bool"
-                                "string"
-                                "bytes"
-                                "enum"
-                                "import"
-                                "package"
-                                "extend")
-                         (non-standard-flags ";" "semicolon"
-                                             "}" "close-curly"
-                                             "{" "open-curly"
-                                             "=" "equals")
-                         (int-value)
-                         (string-value)
-                         (symbol-value)))
+  (let->> [parsed (many (parse-single))
            rest (>> (many (any-char)))]
-
           (if (< 0 (count rest))
-             (do
-               (println (str "unknown: " (apply str (take 10 rest))))
-               (never))
-             (->> parsed
-                  (filter #(not (= :whitespace (:type %))))
-                  always))))
-                         
-          ;;   (always (-> parsed
-          ;;               (filter #(not (= :whitespace (:type %)))))))))
+            (never)
+            (always parsed))))
+
+(defn whitespace? [item]
+  (= :whitespace (:type item)))
+
+(defn make-symbol-test []
+  #(= :symbol (:type %)))
+
+(defparser bool-value []
+  (attempt
+   (let->> [t (token (make-symbol-test))]
+           (if (some #(= (:value t) %)
+                     '("True" "true"))
+             (always {:type :value
+                      :value-type :bool
+                      :value true})
+             (if (some #(= (:value t) %)
+                       '("False" "false"))
+               (always {:type :value
+                        :value-type :bool
+                        :value false})
+               (never))))))
+
+(defparser cleaner []
+  (many (choice (bool-value)
+                (token (constantly true)))))
+
+(defn parse [str]
+  (->> (run (parser) str)
+       (filter #(not (whitespace? %)))
+       (run (cleaner))))
           
 
                        

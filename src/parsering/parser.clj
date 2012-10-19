@@ -9,6 +9,14 @@
 (defparser whitespace [] (many whitespace-char) (always {:type :whitespace}))
 (defparser whitespace1 [] (many1 whitespace-char) (always {:type :whitespace}))
 
+(defparser comment []
+  (attempt
+   (let->> [_ (char \/)
+            _ (char \/)
+            msg (many (except-char "\n"))]
+           (always {:type :comment
+                    :value (apply str msg)}))))
+
 (defn -make-char-sequence-test [chars result]
   (list
    `attempt
@@ -72,6 +80,7 @@
 
 (defparser parse-single []
   (choice
+   (comment)
    (whitespace1)
    (flags "message"
           "required" "optional" "repeated"
@@ -107,6 +116,9 @@
 (defn whitespace? [item]
   (= :whitespace (:type item)))
 
+(defn comment? [item]
+  (= :comment (:type item)))
+
 (defn make-symbol-test []
   #(= :symbol (:type %)))
 
@@ -132,6 +144,7 @@
 (defn parse [str]
   (->> (run (parser) str)
        (filter #(not (whitespace? %)))
+       (filter #(not (comment? %)))
        (run (cleaner))))
           
 

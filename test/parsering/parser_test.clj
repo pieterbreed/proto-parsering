@@ -149,4 +149,20 @@
 
 ;;          )))
 
+(deftest comments-test
+  (testing "that comments work"
+    (are [input expected]
+         (= expected
+            (parsering.parser/parse input))
+
+         "option o; // this is the comment\n message Hey"
+         '({:type :option}
+           {:type :symbol
+            :value "o"}
+           {:type :comment
+            :value " this is the comment"}
+           {:type :symbol
+            :value "Hey"}))))
+           
+
 (run-all-tests #"parsering.parser-test")

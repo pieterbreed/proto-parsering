@@ -4,19 +4,25 @@
 
 (defparser match-keyword [keyword]
   (token #(and (= :keyword (:type %))
-               (= :package (:value %)))))
+               (= keyword (:value %)))))
 
 (defparser match-symbol []
   (token #(and (= :symbol (:type %)))))
 
 (defparser match-package []
-  (>> (match-keyword :package)))
+  (let->> [_ (match-keyword :package)
+           fst (match-symbol)
+           rst (many (>> (match-keyword :point)
+                         (match-symbol)))]
+          (let [package-items (apply list fst rst)]
+            (->> package-items
+                 (map :value)
+                 (apply vector)
+                 ((fn [v]
+                   {:type :package
+                    :value v}))
+                 always))))
 
-          ;;  fst (match-symbol)]
-          ;; fst))
-           ;;  rst (many (>> (match-keyword :point)
-          ;;                (match-symbol)))]
-          ;; (conj rst fst)))
 
                        
               

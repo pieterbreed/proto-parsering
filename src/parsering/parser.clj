@@ -98,6 +98,7 @@
           "package"
           "extend")
    (non-standard-flags ";" "semicolon"
+                       "." "point"
                        "}" "close-curly"
                        "{" "open-curly"
                        "=" "equals")

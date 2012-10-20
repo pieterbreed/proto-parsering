@@ -10,19 +10,21 @@
   (token #(and (= :symbol (:type %)))))
 
 (defparser match-package []
-  (let->> [_ (match-keyword :package)
-           fst (match-symbol)
-           rst (many (>> (match-keyword :point)
-                         (match-symbol)))]
-          (let [package-items (apply list fst rst)]
-            (->> package-items
-                 (map :value)
-                 (apply vector)
-                 ((fn [v]
-                   {:type :package
-                    :value v}))
-                 always))))
-
+  (let->>
+   [package
+    (either
+     (let->> [_ (match-keyword :package)
+              fst (match-symbol)
+              rst (many (>> (match-keyword :point)
+                            (match-symbol)))]
+             (->> (apply list fst rst)
+                  (map :value)
+                  (apply vector)
+                  always))
+     (always []))]
+   (always {:type :package
+            :value package})))
+   
 
                        
               

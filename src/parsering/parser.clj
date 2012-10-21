@@ -96,6 +96,7 @@
           "enum"
           "import"
           "package"
+          "option"
           "extend")
    (non-standard-flags ";" "semicolon"
                        "." "point"

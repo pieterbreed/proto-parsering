@@ -26,15 +26,17 @@
             :value package})))
 
 (defparser match-options []
-  (many
-   (let->> [_ (match-keyword :option)
-            option-name (match-symbol)
-            _ (match-keyword :equals)
-            option-value (match-symbol)
-            _ (match-keyword :semicolon)]
+  (let->> [options (many
+                    (let->> [_ (match-keyword :option)
+                             option-name (match-symbol)
+                             _ (match-keyword :equals)
+                             option-value (match-symbol)
+                             _ (match-keyword :semicolon)]
 
-           (always
-            {:name (:value option-name)
-             :value (:value option-value)}))))
-            
+                            (always
+                             {:name (:value option-name)
+                              :value (:value option-value)})))]
+          (always {:type :options
+                   :value options})))
+          
           

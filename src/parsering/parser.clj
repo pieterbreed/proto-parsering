@@ -53,14 +53,22 @@
                    :value (parse-int (apply str v))
                    :value-type :int})))
 
-
-(defparser symbol-value []
+(defparser symbol-value-word []
   (let->> [frst (letter)
            rst (many (choice (letter)
                              (digit)
                              (char \_)))]
+          (always (str frst (apply str rst)))))
+
+(defparser symbol-value []
+  (let->> [frst (symbol-value-word)
+           rst (many (attempt (>> (char \.)
+                                  (symbol-value-word))))]
           (always {:type :symbol
-                   :value (str frst (apply str rst))})))
+                   :value (->> rst
+                               (apply conj [] frst)
+                               (clojure.string/join "."))})))
+;  (many1 (symbol-value-word)))
 
 (defn -flags-item [flag-str flag-symbol-str]
   (list `attempt

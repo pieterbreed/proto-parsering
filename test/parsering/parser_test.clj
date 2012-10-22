@@ -1,4 +1,3 @@
-
 (ns parsering.parser-test
   (:use clojure.test
         parsering.parser))
@@ -54,101 +53,15 @@
          "_aoeu"
          "2oeu")))
 
-;; (deftest value-value-test
-;;   (testing "that where values are expected, all the types can be parsed"
-;;     (are [input type value] (= {:type :value
-;;                                 :value {:type type
-;;                                         :value value}}
-;;                                (the.parsatron/run (value-value) input))
-;;          "true" :symbol "true"
-;;          "False" :symbol "False"
-;;          "\"testing\"" :string "testing"
-;;          "symbol" :symbol "symbol")))
 
-;; (deftest option-parser-test
-;;   (testing "that options can be parsed"
-;;     (are [input
-;;           symbol-name
-;;           symbol-type
-;;           symbol-value] (= {:type :option
-;;                                         :value
-;;                                         {:name {:type :value
-;;                                                 :value {:type :symbol
-;;                                                         :value symbol-name}}
-;;                                          :value {:type :value
-;;                                                  :value {:type symbol-type
-;;                                                          :value symbol-value}}}}
-;;                                        (the.parsatron/run (option-parser) input))
-;;          "option java_package = \"com.allangray.model\";"
-;;          "java_package"
-;;          :string
-;;          "com.allangray.model"
-
-;;          "option java_multiple_files = true;"
-;;          "java_multiple_files"
-;;          :symbol
-;;          "true")))
-
-;; (deftest msg-line-test
-;;   (testing "that message item lines can be parsed"
-;;     true))
-;;     ;; (are [input
-;;     ;;       modifier
-;;     ;;       type]
-;;     ;;      (= {:type :msg-line
-;;     ;;          :value {:modifier modifier
-;;     ;;                  :value-type type}}
-;;     ;;         (the.parsatron/run (msg-line) input))
-
-;;     ;;      "required int32" :required :int32
-
-;;     ;;      " required double" :required :double
-         
-;;     ;;      "optional fixed64" :optional :fixed64
-;;     ;;      "\t\trepeated\tbytes" :repeated :bytes)))
-
-;; (deftest int-value-test
-;;   (testing "that an integer value parses correctly"
-;;     (are [input value]
-;;          (= {:type :value
-;;              :value {:type :int
-;;                      :value value}}
-;;             (the.parsatron/run (int-value) input))
-;;          "43" 43)))
-
-;; (deftest item-line-test
-;;   (testing "that messages have lines and that those lines look sane"
-;;     (are [input
-;;           modifier
-;;           value-type
-;;           symbol-type
-;;           position]
-;;          (= {:type :msg-line
-;;              :value {:modifier modifier
-;;                      :value-type value-type
-;;                      :symbol {:type :value :value {:type :symbol :value symbol-type}}
-;;                      :position {:type :value :value {:type :int :value position}}}}
-;;             (the.parsatron/run (msg-line) input))
-
-;;          "optional string query = 1"
-;;          :optional
-;;          :string
-;;          "query"
-;;          1
-
-;;          "required double items  = 2"
-;;          :required
-;;          :double
-;;          "items"
-;;          2
-
-;;          "repeated int32 query = 101"
-;;          :repeated
-;;          :int32
-;;          "query"
-;;          101
-
-;;          )))
+(deftest int-value-test
+  (testing "that an integer value parses correctly"
+    (are [input value]
+         (= {:type :value
+             :value value
+             :value-type :int}
+            (the.parsatron/run (int-value) input))
+         "43" 43)))
 
 (deftest comments-test
   (testing "that comments work"
@@ -157,13 +70,12 @@
             (parsering.parser/parse input))
 
          "option o; // this is the comment\n message Hey"
-         '({:type :option}
-           {:type :symbol
-            :value "o"}
-           {:type :comment
-            :value " this is the comment"}
-           {:type :symbol
-            :value "Hey"}))))
+         (list
+          {:type :keyword, :value :option}
+          {:type :symbol, :value "o"}
+          {:type :keyword, :value :semicolon}
+          {:type :keyword, :value :message}
+          {:type :symbol, :value "Hey"}))))
            
 
 (run-all-tests #"parsering.parser-test")

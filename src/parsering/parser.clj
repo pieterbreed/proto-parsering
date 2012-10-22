@@ -9,7 +9,7 @@
 (defparser whitespace [] (many whitespace-char) (always {:type :whitespace}))
 (defparser whitespace1 [] (many1 whitespace-char) (always {:type :whitespace}))
 
-(defparser comment []
+(defparser parse-comment []
   (attempt
    (let->> [_ (char \/)
             _ (char \/)
@@ -48,9 +48,16 @@
                             :value (apply str strvalue)}))))
 
 (defparser int-value []
-  (let->> [v (many1 (digit))]
+  (let->> [sign (choice (>> (char \-)
+                            (always :minus))
+                        (>> (char \+)
+                            (always :plus))
+                        (always :plus))
+           v (many1 (digit))]
           (always {:type :value
-                   :value (parse-int (apply str v))
+                   :value (if (= :minus sign)
+                            (* -1 (parse-int (apply str v)))
+                            (parse-int (apply str v)))
                    :value-type :int})))
 
 (defparser symbol-value-word []
@@ -87,7 +94,7 @@
 
 (defparser parse-single []
   (choice
-   (comment)
+   (parse-comment)
    (whitespace1)
    (flags "message"
           "required" "optional" "repeated"

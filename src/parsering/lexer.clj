@@ -56,6 +56,19 @@
           (always {:type :import
                    :value (:value location)})))
 
+(defparser match-enum []
+  (let->> [_ (match-keywords :enum)
+           name (match-symbol)
+           _ (match-keywords :open-curly)
+           enums (many1 (let->> [enumname (match-symbol)
+                                 _ (match-keywords :equals)
+                                 enumvalue (match-int-value)
+                                 _ (match-keywords :semicolon)]
+                                (always {:name (:value enumname)
+                                         :value (:value enumvalue)})))]
+          (always {:type :enum
+                   :values (vec enums)})))
+
 (defparser match-message-member []
   (let->> [modifier (choice (match-keywords :optional)
                             (match-keywords :required)

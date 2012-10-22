@@ -37,6 +37,20 @@
 
          "import \"import.proto\";" "import.proto")))
 
+(deftest enum-test
+  (testing "that an enum can have members with values"
+    (let [input "enum Scope { Visible = 1; Hidden = 2; Something = 3; } "
+          en (the.parsatron/run (match-enum)
+                                (parsering.parser/parse input))]
+      (is (= en
+             {:type :enum
+              :values [{:name "Visible"
+                        :value 1}
+                       {:name "Hidden"
+                        :value 2}
+                       {:name "Something"
+                        :value 3}]})))))
+
 (deftest message
   (testing "one ugly difficult to debug integrated message"
     (are [input t]

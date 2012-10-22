@@ -61,7 +61,9 @@
              :value value
              :value-type :int}
             (the.parsatron/run (int-value) input))
-         "43" 43)))
+         "43" 43
+         "+43" 43
+         "-33" -33)))
 
 (deftest comments-test
   (testing "that comments work"

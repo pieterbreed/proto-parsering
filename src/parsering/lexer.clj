@@ -24,14 +24,9 @@
    [package
     (either
      (let->> [_ (match-keywords :package)
-              fst (match-symbol)
-              rst (many (>> (match-keywords :point)
-                            (match-symbol)))]
-             (->> (apply list fst rst)
-                  (map :value)
-                  (apply vector)
-                  always))
-     (always []))]
+              pac (match-symbol)]
+             (always (:value pac)))
+     (always ""))]
    (always {:type :package
             :value package})))
 
@@ -39,9 +34,12 @@
   (let->> [_ (match-keywords :option)
            option-name (match-symbol)
            _ (match-keywords :equals)
-           option-value (either (let->> [s (match-symbol)]
+           option-value (choice (let->> [s (match-symbol)]
                                         (always {:type :symbol
                                                  :value (:value s)}))
+                                (let->> [i (match-int-value)]
+                                        (always {:type :int
+                                                 :value (:value i)}))
                                 (let->> [s (match-string-value)]
                                         (always {:type :string
                                                  :value (:value s)})))
@@ -55,7 +53,6 @@
   (let->> [_ (match-keywords :import)
            location (match-string-value)
            _ (match-keywords :semicolon)]
-
           (always {:type :import
                    :value (:value location)})))
 
@@ -81,7 +78,7 @@
                    :modifier (:value modifier)
                    :member-type (:value type)
                    :name (:value name)
-                   :position (:value position)})))
+                   :tag (:value position)})))
                                                      
 
 (defparser match-message []
@@ -92,8 +89,8 @@
            members (many (match-message-member))
            _ (match-keywords :close-curly)]
           (always {:type :message
-                   :nesteds nesteds
-                   :members members})))
+                   :nesteds (vec nesteds)
+                   :members (vec members)})))
            
           
           

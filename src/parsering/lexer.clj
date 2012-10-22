@@ -65,7 +65,8 @@
                                  enumvalue (match-int-value)
                                  _ (match-keywords :semicolon)]
                                 (always {:name (:value enumname)
-                                         :value (:value enumvalue)})))]
+                                         :value (:value enumvalue)})))
+           _ (match-keywords :close-curly)]
           (always {:type :enum
                    :values (vec enums)})))
 
@@ -92,18 +93,20 @@
                    :member-type (:value type)
                    :name (:value name)
                    :tag (:value position)})))
-                                                     
+
+(defparser match-message-item []
+  (choice (match-message)
+          (match-message-member)
+          (match-enum)))                             
 
 (defparser match-message []
   (let->> [_ (match-keywords :message)
            name (match-symbol)
            _ (match-keywords :open-curly)
-           nesteds (many (match-message))
-           members (many (match-message-member))
+           items (many (match-message-item))
            _ (match-keywords :close-curly)]
           (always {:type :message
-                   :nesteds (vec nesteds)
-                   :members (vec members)})))
+                   :items items})))
            
           
           

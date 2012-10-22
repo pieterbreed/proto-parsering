@@ -116,6 +116,8 @@
                        "." "point"
                        "}" "close-curly"
                        "{" "open-curly"
+                       "[" "open-bracket"
+                       "]" "close-bracket"
                        "=" "equals")
    (int-value)
    (string-value)
@@ -160,8 +162,8 @@
 (defn parse [str]
   (->> (run (parser) str)
        (filter #(not (whitespace? %)))
-       (filter #(not (comment? %)))
-       (run (cleaner))))
+       (filter #(not (comment? %)))))
+;       (run (cleaner))))
           
 
                        

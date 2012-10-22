@@ -87,11 +87,25 @@
            name (match-symbol)
            _ (match-keywords :equals)
            position (match-int-value)
+           option (either (let->> [_ (match-keywords
+                                       :open-bracket)
+                                    kw (match-symbol)
+                                    _ (match-keywords
+                                       :equals)
+                                    v (choice (match-symbol)
+                                              (match-int-value)
+                                              (match-string-value))
+                                    _ (match-keywords
+                                       :close-bracket)]
+                                   (always {:name (:value kw)
+                                            :value (:value v)}))
+                          (always nil))
            _ (match-keywords :semicolon)]
           (always {:type :message-member
                    :modifier (:value modifier)
                    :member-type (:value type)
                    :name (:value name)
+                   :option option
                    :tag (:value position)})))
 
 (defparser match-message-item []

@@ -2,9 +2,11 @@
   (:refer-clojure :exclude [char])
   (:use [the.parsatron]))
 
-(defparser match-keyword [keyword]
-  (token #(and (= :keyword (:type %))
-               (= keyword (:value %)))))
+(defparser match-keywords [& keywords]
+  (letfn [(match-keyword-value [kw]
+            (some #(= kw %) keywords))]
+    (token #(and (= :keyword (:type %))
+                 (match-keyword-value (:value %))))))
 
 (defparser match-symbol []
   (token #(and (= :symbol (:type %)))))
@@ -21,9 +23,9 @@
   (let->>
    [package
     (either
-     (let->> [_ (match-keyword :package)
+     (let->> [_ (match-keywords :package)
               fst (match-symbol)
-              rst (many (>> (match-keyword :point)
+              rst (many (>> (match-keywords :point)
                             (match-symbol)))]
              (->> (apply list fst rst)
                   (map :value)
@@ -34,49 +36,64 @@
             :value package})))
 
 (defparser match-option []
-  (let->> [_ (match-keyword :option)
+  (let->> [_ (match-keywords :option)
            option-name (match-symbol)
-           _ (match-keyword :equals)
+           _ (match-keywords :equals)
            option-value (either (let->> [s (match-symbol)]
                                         (always {:type :symbol
                                                  :value (:value s)}))
                                 (let->> [s (match-string-value)]
                                         (always {:type :string
                                                  :value (:value s)})))
-           _ (match-keyword :semicolon)]
+           _ (match-keywords :semicolon)]
           (always {:type :option
                    :key (:value option-name)
                    :value-type (:type option-value)
                    :value (:value option-value)})))
           
 (defparser match-import []
-  (let->> [_ (match-keyword :import)
+  (let->> [_ (match-keywords :import)
            location (match-string-value)
-           _ (match-keyword :semicolon)]
+           _ (match-keywords :semicolon)]
 
           (always {:type :import
                    :value (:value location)})))
 
 (defparser match-message-member []
-  (let->> [modifier (choice (match-keyword :optional)
-                            (match-keyword :required)
-                            (match-keyword :repeated))
-           type (match-symbol)
+  (let->> [modifier (choice (match-keywords :optional)
+                            (match-keywords :required)
+                            (match-keywords :repeated))
+           type (match-keywords :double :float
+                                :int32 :int64
+                                :uint32 :uint64
+                                :sint32 :sint64
+                                :fixed32 :fixed64
+                                :sfixed32 :sfixed64
+                                :bool
+                                :string
+                                :bytes
+                                :enum)
            name (match-symbol)
-           _ (match-keyword :equals)
-           position (match-int-value)]
+           _ (match-keywords :equals)
+           position (match-int-value)
+           _ (match-keywords :semicolon)]
           (always {:type :message-member
-                   :modifier (:type modifier)
+                   :modifier (:value modifier)
                    :member-type (:value type)
                    :name (:value name)
                    :position (:value position)})))
                                                      
 
-;; (defparser match-message []
-;;   (let->> [_ (match-keyword :message)
-;;            name (match-symbol)
-;;            _ (match-keyword :open-curly)
-;;            nesteds (many (match-message))
+(defparser match-message []
+  (let->> [_ (match-keywords :message)
+           name (match-symbol)
+           _ (match-keywords :open-curly)
+           nesteds (many (match-message))
+           members (many (match-message-member))
+           _ (match-keywords :close-curly)]
+          (always {:type :message
+                   :nesteds nesteds
+                   :members members})))
            
           
           

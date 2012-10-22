@@ -68,7 +68,6 @@
                    :value (->> rst
                                (apply conj [] frst)
                                (clojure.string/join "."))})))
-;  (many1 (symbol-value-word)))
 
 (defn -flags-item [flag-str flag-symbol-str]
   (list `attempt

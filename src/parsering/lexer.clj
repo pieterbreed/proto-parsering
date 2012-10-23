@@ -24,7 +24,8 @@
    [package
     (either
      (let->> [_ (match-keywords :package)
-              pac (match-symbol)]
+              pac (match-symbol)
+              _ (match-keywords :semicolon)]
              (always (:value pac)))
      (always ""))]
    (always {:type :package
@@ -74,16 +75,21 @@
   (let->> [modifier (choice (match-keywords :optional)
                             (match-keywords :required)
                             (match-keywords :repeated))
-           type (match-keywords :double :float
-                                :int32 :int64
-                                :uint32 :uint64
-                                :sint32 :sint64
-                                :fixed32 :fixed64
-                                :sfixed32 :sfixed64
-                                :bool
-                                :string
-                                :bytes
-                                :enum)
+           type (either (attempt (let->> [kw (match-keywords :double :float
+                                                             :int32 :int64
+                                                             :uint32 :uint64
+                                                             :sint32 :sint64
+                                                             :fixed32 :fixed64
+                                                             :sfixed32 :sfixed64
+                                                             :bool
+                                                             :string
+                                                             :bytes
+                                                             :enum)]
+                                         (always {:member-type (:value kw)
+                                                  :member-is-simple-type true})))
+                        (let->> [s (match-symbol)]
+                                (always {:member-type (:value s)
+                                         :member-is-simple-type false})))
            name (match-symbol)
            _ (match-keywords :equals)
            position (match-int-value)
@@ -103,10 +109,14 @@
            _ (match-keywords :semicolon)]
           (always {:type :message-member
                    :modifier (:value modifier)
-                   :member-type (:value type)
+                   :member-type (:member-type type)
+                   :member-is-simple-type (:member-is-simple-type type)
                    :name (:value name)
                    :option option
                    :tag (:value position)})))
+
+; forward declaration so that messages may have other messages in them
+(def match-message)
 
 (defparser match-message-item []
   (choice (match-message)
@@ -121,6 +131,26 @@
            _ (match-keywords :close-curly)]
           (always {:type :message
                    :items items})))
+
+(defparser match-proto-file []
+  (let->> [p (match-package)
+           contents (many (choice (match-option)
+                                  (match-message)
+                                  (match-import)
+                                  (match-enum)))
+           _ (eof)]
+          (always {:type :proto-file
+                   :package (:value p)
+                   :contents contents})))
+
+(defn lex
+  "Runs the lexical analyzer on a stream of tokens, typically output from the parser. The proto token stream may contain import statements (similar to C-style include directives, which import definitions from other files. The file-tokenizer is a function that takes this file string and resolves it to a stream of tokens."
+  [stream file-tokenizer]
+  (run (match-proto-file)
+       stream))
+
+(defn parse-proto-file [file file-resolver]
+  (lex (parsering.parser/parse (slurp file))))
            
           
           

@@ -159,11 +159,16 @@
   (many (choice (bool-value)
                 (token (constantly true)))))
 
-(defn parse [str]
-  (->> (run (parser) str)
+
+(defn parse
+  "takes a string and transforms it into a stream of tokens. If the str has meta-data with key :parsering-data then it will be copied to the output stream"
+  [str]
+  (let [parsed (-> (run (parser) str)
+                   (with-meta (get (meta str) :parsering-data {})))]
+                      
+  (->> parsed
        (filter #(not (whitespace? %)))
-       (filter #(not (comment? %)))))
-;       (run (cleaner))))
+       (filter #(not (comment? %))))))
           
 
                        

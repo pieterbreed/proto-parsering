@@ -146,13 +146,19 @@
 (defn lex
   "Runs the lexical analyzer on a stream of tokens, typically output from the parser. The proto token stream may contain import statements (similar to C-style include directives, which import definitions from other files. The file-tokenizer is a function that takes this file string and resolves it to a stream of tokens."
   [stream file-tokenizer]
-  (let [result (run (match-proto-file) stream)
+  (let [meta-data (get (meta stream) :parsering-data {})
+        result (-> (run (match-proto-file) stream)
+                   (with-meta meta-data))
         imports (filter #(= :import (:type %)) (:contents result))
         import-fn #(lex (file-tokenizer (get % :value)) file-tokenizer)]
     (apply list result (flatten (map import-fn imports)))))
     
 
-(defn parse-proto-file [file file-resolver]
+
+(defn parse-proto-file
+  "Takes a filename and a function that turns filenames into tokenized streams (using parser/parse). If the resolver brings back meta-data with the value of :parsering-data it will be copied to the result stream"
+
+  [file file-resolver]
   (letfn [(import-fn [f] (-> (file-resolver f)
                              parsering.parser/parse))]
     (lex (import-fn file)

@@ -1,6 +1,7 @@
 (ns parsering.lexer
   (:refer-clojure :exclude [char])
-  (:use [the.parsatron]))
+  (:use [the.parsatron]
+        [parsering.common]))
 
 (defparser match-keywords [& keywords]
   (letfn [(match-keyword-value [kw]
@@ -69,6 +70,7 @@
                                          :value (:value enumvalue)})))
            _ (match-keywords :close-curly)]
           (always {:type :enum
+                   :name (:value name)
                    :values (vec enums)})))
 
 (defparser match-message-member []
@@ -119,9 +121,22 @@
 (def match-message)
 
 (defparser match-message-item []
-  (choice (match-message)
-          (match-message-member)
-          (match-enum)))                             
+  (choice (let->> [msg (match-message)]
+                  (always {:type :nesteds
+                           :value msg}))
+          (let->> [item (match-message-member)]
+                  (always {:type :message-members
+                           :value item}))
+          (let->> [enum (match-enum)]
+                  (always {:type :enums
+                           :value enum}))))
+
+(defn group-message-items [many-items]
+  (letfn [(get-values [xs] (vec (map :value xs)))]
+    (->> (group-by :type many-items)
+         (map #(hash-map (first %)
+                         (get-values (second %))))
+         (apply merge))))
 
 (defparser match-message []
   (let->> [_ (match-keywords :message)
@@ -129,8 +144,13 @@
            _ (match-keywords :open-curly)
            items (many (match-message-item))
            _ (match-keywords :close-curly)]
-          (always {:type :message
-                   :items items})))
+          (let [grouped (group-message-items items)]
+          (always (merge
+                   {:type :message
+                    :name (:value name)}
+                   {:message-members (get grouped :message-members [])}
+                   {:enums (get grouped :enums [])}
+                   {:nesteds (get grouped :nesteds [])})))))
 
 (defparser match-proto-file []
   (let->> [p (match-package)
@@ -146,9 +166,8 @@
 (defn lex
   "Runs the lexical analyzer on a stream of tokens, typically output from the parser. The proto token stream may contain import statements (similar to C-style include directives, which import definitions from other files. The file-tokenizer is a function that takes this file string and resolves it to a stream of tokens."
   [stream file-tokenizer]
-  (let [meta-data (get (meta stream) :parsering-data {})
-        result (-> (run (match-proto-file) stream)
-                   (with-meta meta-data))
+  (let [result (->> (run (match-proto-file) stream)
+                    (copy-meta stream))
         imports (filter #(= :import (:type %)) (:contents result))
         import-fn #(lex (file-tokenizer (get % :value)) file-tokenizer)]
     (apply list result (flatten (map import-fn imports)))))
@@ -158,10 +177,10 @@
 (defn parse-proto-file
   "Takes a filename and a function that turns filenames into tokenized streams (using parser/parse). If the resolver brings back meta-data with the value of :parsering-data it will be copied to the result stream"
 
-  [file file-resolver]
+  [file-name file-resolver]
   (letfn [(import-fn [f] (-> (file-resolver f)
                              parsering.parser/parse))]
-    (lex (import-fn file)
+    (lex (import-fn file-name)
          #(import-fn %))))
            
           

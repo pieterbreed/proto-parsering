@@ -44,40 +44,33 @@
                                 (parsering.parser/parse input))]
       (is (= en
              {:type :enum
-              :values [{:name "Visible"
-                        :value 1}
-                       {:name "Hidden"
-                        :value 2}
-                       {:name "Something"
-                        :value 3}]})))))
+              :name "Scope"
+              :values [{:name "Visible", :value 1}
+                       {:name "Hidden", :value 2}
+                       {:name "Something", :value 3}]})))))
 
 (deftest message
   (testing "one ugly difficult to debug integrated message"
-    (are [input t]
+    (are [input expected]
         (let [msg (the.parsatron/run (match-message)
                                      (parsering.parser/parse input))]
-          (t msg))
+          (= expected msg))
 
         "message Test { required int32 s = 1; }"
-        #(and (= :message (:type %))
-              (= [] (:nesteds %))
-              (= :message-member (get-in % [:members 0 :type]))
-              (= :required (get-in % [:members 0 :modifier]))
-              (= :int32 (get-in % [:members 0 :member-type]))
-              (= "s" (get-in % [:members 0 :name]))
-              (= 1 (get-in % [:members 0 :tag])))
-
+        {:nesteds []
+         :enums []
+         :type :message
+         :name "Test"
+         :message-members [{:type :message-member
+                            :modifier :required
+                            :member-type :int32
+                            :member-is-simple-type true
+                            :name "s"
+                            :option nil
+                            :tag 1}]}
 
         "message outer { message inner { required double first = 1; repeated float second = 2; } optional bool third = 3; }"
-        #(and (= :message (get-in % [:nesteds 0 :type]))
-              (= :repeated (get-in % [:nesteds 0 :members 1 :modifier]))
-              (= "first" (get-in % [:nesteds 0 :members 0 :name]))
-              (= 2 (get-in % [:nesteds 0 :members 1 :tag]))
-              (= :optional (get-in % [:members 0 :modifier])))
-        
-
-
-        )))
+        {:nesteds [{:nesteds [], :enums [], :message-members [{:type :message-member, :modifier :required, :member-type :double, :member-is-simple-type true, :name "first", :option nil, :tag 1} {:type :message-member, :modifier :repeated, :member-type :float, :member-is-simple-type true, :name "second", :option nil, :tag 2}], :type :message, :name "inner"}], :enums [], :message-members [{:type :message-member, :modifier :optional, :member-type :bool, :member-is-simple-type true, :name "third", :option nil, :tag 3}], :type :message, :name "outer"})))
 
 
                                 

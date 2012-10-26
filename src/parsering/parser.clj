@@ -1,6 +1,7 @@
 (ns parsering.parser
   (:refer-clojure :exclude [char])
-  (:use [the.parsatron]))
+  (:use [the.parsatron]
+        [parsering.common]))
 
 (defn parse-int [str]
   (Integer/parseInt str))
@@ -164,7 +165,7 @@
   "takes a string and transforms it into a stream of tokens. If the str has meta-data with key :parsering-data then it will be copied to the output stream"
   [str]
   (let [parsed (run (parser) str)]
-  (->> parsed
+  (->> (copy-meta str parsed)
        (filter #(not (whitespace? %)))
        (filter #(not (comment? %))))))
           

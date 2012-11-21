@@ -1,7 +1,9 @@
 (ns parsering.lexer
   (:refer-clojure :exclude [char])
   (:use [the.parsatron]
-        [parsering.common]))
+        [parsering.common]
+        [parsering.parser :as parser]
+        [clojure.tools.cli :only [cli]]))
 
 (defparser match-keywords [& keywords]
   (letfn [(match-keyword-value [kw]
@@ -172,16 +174,24 @@
         import-fn #(lex (file-tokenizer (get % :value)) file-tokenizer)]
     (apply list result (flatten (map import-fn imports)))))
     
-
-
 (defn parse-proto-file
-  "Takes a filename and a function that turns filenames into tokenized streams (using parser/parse). If the resolver brings back meta-data with the value of :parsering-data it will be copied to the result stream"
+  "Takes a filename and a function that turns filenames into streams of chars. If the resolver brings back meta-data with the value of :parsering-data it will be copied to the result stream"
 
   [file-name file-resolver]
   (letfn [(import-fn [f] (-> (file-resolver f)
-                             parsering.parser/parse))]
+                             parser/parse))]
     (lex (import-fn file-name)
          #(import-fn %))))
-           
+
+(defn main
+  "The lex app which shows a symbolic representation of the protobuf files"
+  [& args]
+  (let [[options extra banner] 
+        (cli args
+             ["-d" "--directory" "The directory in from which to resolve file names"
+              :parse-fn parse-directory
+              :default (java.io.File. ".")])]
+    (println (str "Running from: " (.getAbsolutePath (:directory options))))))
+  
           
           

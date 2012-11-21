@@ -4,5 +4,6 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.4.0"]
-                 [the/parsatron "0.0.3"]]
+                 [the/parsatron "0.0.3"]
+                 [org.clojure/tools.cli "0.2.2"]]
   :main parsering.core)

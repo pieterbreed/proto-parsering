@@ -3,6 +3,13 @@
   (:use [the.parsatron]
         [parsering.common]))
 
+(defn except-char
+  "Consume any characters except the ones provided"
+  [exclusions]
+  (token (fn [inp]
+           (and (char? inp)
+                (not (some #(= % inp) exclusions))))))
+
 (defn parse-int [str]
   (Integer/parseInt str))
 

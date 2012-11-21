@@ -1,4 +1,5 @@
-(ns proto.encoder)
+(ns proto.encoder
+  (:require [clojure.math.numeric-tower :as math]))
 
 (defn show-byte-bits
   "Computes the bit pattern of a single byte"
@@ -49,9 +50,27 @@
                  :from-bits
                  (get bits)))))
 
-(defn show-n-bytes-as-bits
-  "Interprets value x as an integral value, and takes the least significant n bytes of it and displays them"
-  [x n]
+(defmulti to-zigzag
+  "performs zigzag encoding on a integral value"
+  type)
+(defmethod to-zigzag
+  java.lang.Long [l]
+  (bit-xor (bit-shift-left l 1)
+           (bit-shift-right l 63)))
+(defmethod to-zigzag
+  java.lang.Integer [i]
+  (bit-xor (bit-shift-left i 1)
+           (bit-shift-right i 31)))
+
+(defn from-zigzag
+  "Reverse zigzag, takes an integral encoded in zigzag form and produces a value encoded in normal 2s complement form"
+  [l]
+  (bit-xor (bit-shift-right l 1)
+           (* -1 (bit-and l 1))))
+
+(defn map-bytes
+  "Performs map operation against the n least significant bytes in the integral value x"
+  [f x n]
   (loop [left n
          i x
          out '()]
@@ -59,7 +78,12 @@
       out
       (recur (dec left)
              (bit-shift-right i 8)
-             (conj out (byte-to-bits (bit-and i 255)))))))
+             (conj out (f (bit-and i 255)))))))
+
+(defn show-n-bytes-as-bits
+  "Interprets value x as an integral value, and takes the least significant n bytes of it and displays them"
+  [x n]
+  (map-bytes byte-to-bits x n))
 
 (defmacro create-enc-type
   [enc-type-name]
@@ -126,12 +150,43 @@
   [d]
   (show-as-bits (float (.floatValue (:value d)))))
 
+(defmulti varint-encode
+  "Encodes an integral value into varint form"
+  type)
+
+(def sig-bits
+  (atom 
+   (->> (range 8)
+        (map #(list % (dec (math/expt 2 %))))
+        flatten
+        (map unchecked-byte)
+        (apply hash-map))))
+
+(defmethod varint-encode
+  java.lang.Long [l]
+  (letfn [(make-last [x sigs]
+            (-> (get @sig-bits sigs)
+                (bit-and x)
+                (bit-or 128)
+                unchecked-byte))]
+  (loop [bits 57
+         nr (-> (bit-shift-right l 7)
+                (bit-and (-> (math/expt 2 56) ;; clear out top-most 7 bits to prevent filling with 1
+                             dec)))
+         out []
+         last (make-last l 7)]
+    (if (or (= 0 nr)
+            (<= bits 0))
+      (conj out
+            (bit-and last 127))
+      (recur (- bits 7)
+             (bit-shift-right nr 7)
+             (conj out last)
+             (make-last nr (min 7 bits)))))))
+
 (defmulti encode-value
   "Takes a language value and encodes it in protobuf-serialized format"
   )
-
-
-  
 
 (defmethod encode-value
   :default [_]

@@ -162,16 +162,19 @@
         (map unchecked-byte)
         (apply hash-map))))
 
-(defmethod varint-encode
-  java.lang.Long [l]
+
+
+(defn varint-encode-bits
+  "var-int encodes the least significant bits bits of l"
+  [l bits]
   (letfn [(make-last [x sigs]
             (-> (get @sig-bits sigs)
                 (bit-and x)
                 (bit-or 128)
                 unchecked-byte))]
-  (loop [bits 57
+  (loop [bits (- bits 7)
          nr (-> (bit-shift-right l 7)
-                (bit-and (-> (math/expt 2 56) ;; clear out top-most 7 bits to prevent filling with 1
+                (bit-and (-> (math/expt 2 (- bits 8)) ;; clear out top-most 7 bits to prevent filling with 1
                              dec)))
          out []
          last (make-last l 7)]
@@ -183,6 +186,29 @@
              (bit-shift-right nr 7)
              (conj out last)
              (make-last nr (min 7 bits)))))))
+
+(defn varint-decode-bits
+  "var-int decodes the provided seq of bytes into a long value"
+  [bs]
+  (letfn [(reducefn [result byt]
+            (+ (bit-and byt 127)
+               (bit-shift-left result 7)))]
+    (loop [bseq bs
+           parts '()]
+      (let [byt (first bseq)]
+        (if (-> (bit-and 128 byt) (= 0))
+          (reduce reducefn byt parts)
+          (recur (rest bseq)
+                 (conj parts byt)))))))
+        
+
+(defmethod varint-encode
+  java.lang.Long [l]
+  (varint-encode-bits l 64))
+
+(defmethod varint-encode
+  java.lang.Integer [i]
+  (varint-encode-bits i 32))
 
 (defmulti encode-value
   "Takes a language value and encodes it in protobuf-serialized format"

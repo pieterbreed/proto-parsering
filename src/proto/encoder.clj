@@ -162,8 +162,6 @@
         (map unchecked-byte)
         (apply hash-map))))
 
-
-
 (defn varint-encode-bits
   "var-int encodes the least significant bits bits of l"
   [l bits]
@@ -197,11 +195,10 @@
            parts '()]
       (let [byt (first bseq)]
         (if (-> (bit-and 128 byt) (= 0))
-          (reduce reducefn byt parts)
+          (vector (rest bseq) (reduce reducefn byt parts))
           (recur (rest bseq)
                  (conj parts byt)))))))
         
-
 (defmethod varint-encode
   java.lang.Long [l]
   (varint-encode-bits l 64))
@@ -210,17 +207,59 @@
   java.lang.Integer [i]
   (varint-encode-bits i 32))
 
-(defmulti encode-value
-  "Takes a language value and encodes it in protobuf-serialized format"
-  )
+;; (defmulti encode-value
+;;   "Takes a language value and encodes it in protobuf-serialized format"
+;;   )
 
-(defmethod encode-value
-  :default [_]
-  (println "default"))
+;; (defmethod encode-value
+;;   :default [_]
+;;   (println "default"))
 
 
-(defmethod encode-value
-  [java.lang.Long :int64] [x]
+;; (defmethod encode-value
+;;   [java.lang.Long :int64] [x]
   
-  (println (str x)))
+;;   (println (str x)))
+
+(defn make-encoding-value
+  "Produces the byte that goes ahead of a value in a protobuf stream. Contains information about the field number and the field value type"
+  [nr tag]
+   (let [tagnr ({:varint 0
+                :64-bit 1
+                :length-delimited 2
+                :start-group 3
+                :end-group 4
+                :32-bit 5}
+               tag)]
+    (-> (+ (bit-shift-left nr 3)
+           tagnr)
+        varint-encode)))
+        
+
+(defn decode-encoding-value
+  "Decodes the stream of bytes to determine the next fields tag nr and field type. Returns the stream of bytes (with the used values removed) and the wire type and tag nr"
+  [bs]
+  (let [[bseq tag] (varint-decode-bits bs)]
+    [bseq {:type :encoding-marker
+           :wire-type ({0 :varint
+                        1 :64-bit
+                        2 :length-delimited
+                        3 :start-group
+                        4 :end-group
+                        5 :32-bit} (bit-and 7 tag))
+           :tag-nr (bit-shift-right tag 3)}]))
+
+(defn decode-from-stream
+  "Decodes one value from a stream of bytes and conj it onto out"
+  [bs out]
+  (let [[bs tag] (decode-encoding-value bs)
+        [bs val] (condp = (:wire-type tag)
+                   :varint (varint-decode-bits bs))]
+    (vector bs (conj out
+                     {:type :value
+                      :value val
+                      :tag-nr (:tag-nr tag)}))))
+  
+  
+    
      

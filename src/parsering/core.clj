@@ -1,7 +1,8 @@
 (ns parsering.core
   (:use [clojure.pprint]
         [clojure.tools.cli :only [cli]]
-        [clojure.core])
+        [clojure.core]
+        [proto.encoder :only [decode-protobuf-stream]])
   (:require [parsering.lexer :as lex])
   (:gen-class))
 
@@ -29,6 +30,22 @@
     #(-> (fs-file (-> (new java.io.File folderFile %)
                       .getAbsolutePath))
          resolve-file)))
+
+;; (defn create-proto-decoders
+;;   "Returns a map of names to functions that can read a seq of bytes and make a map with it's contents. Input is a protobuf definition file that may contain many definitions directly or via imports"
+;;   [filename resolver]
+;;   (let [proto-def (lex/parse-proto-file filename resolver) ;; this is a seq
+;;         find-field (fn [pname pfield]
+;;                      (->> proto-def
+;;                           (some #(
+                         
+;;         interpret-tag (fn [x]
+;;                         (let [field-nr (:tag-nr x)
+                              
+;;         ]
+;;     (fn [bs]
+;;       (->> (decode-protobuf-stream bs)
+           
 
 (defn -main
   "I don't do a whole lot ... yet."

@@ -5,6 +5,19 @@
         [parsering.parser :as parser]
         [clojure.tools.cli :only [cli]]))
 
+(defn split-namespace-elements
+  "splits a namespace value string into component elements (separated by '.')"
+  [s]
+  (run (either (let->> [fst (many1 (token #(not= \. %)))
+                        rst (many (>> (char \.)
+                                      (many1 (token #(not= \. %)))))]
+                       (always (apply vector
+                                      (conj (map #(apply str %) rst)
+                                            (apply str fst)))))
+               (always []))
+       s))
+                        
+
 (defparser match-keywords [& keywords]
   (letfn [(match-keyword-value [kw]
             (some #(= kw %) keywords))]
@@ -168,11 +181,64 @@
                    :package (:value p)
                    :contents contents})))
 
+(defn extract-options
+  "Extracts the options from a proto-file record and puts it in a map"
+  [not-messages]
+  (->> not-messages
+       (filter #(= :option (:type %)))
+       (map #(hash-map (:key %) (dissoc % :key :type)))
+       (apply merge)))
+
+(defn split-headers-and-messages
+  [file-record]
+  (let [parts (group-by #(= :message (:type %)) file-record)]
+    {:messages (get parts true)
+     :meta (get parts false)}))
+
+(defn extract-messages-and-namespace
+  "Goes through a list of records of :type :message and namespaces each. Also repeats the same thing for nested messages, with more specific namespace of enclosing type. Applies the same options"
+  [messages package options]
+  (letfn [(fully-namespace [r]
+            (-> (assoc r
+                  :full-name (->> (:name r)
+                                  (conj (split-namespace-elements package))
+                                  (reduce #(str %1 "." %2))))
+                (dissoc :name)))]
+    (let [these-msgs (map fully-namespace messages)
+          embeddeds (->> these-msgs
+                         (map #(vector (:full-name %) (:nesteds %)))
+                         (map #(extract-messages-and-namespace (second %)
+                                                               (first %)
+                                                               options))
+                         (apply concat))]
+      (concat (map #(dissoc % :nesteds) these-msgs) embeddeds))))
+
+
+       
+;; (defn qualify-proto-record
+;;   "Does a transformation on the record by fully qualifying type names and capturing options and packages within the scope that they are used. Makes it easier to be used in a code-gen context."
+;;   [file-record]
+;;   (let [{:keys [messages meta]} (split-headers-and-messages (:contents file-record))
+;;         file-options (extract-options meta)
+;;         msgs (->> (:contents r)
+;;                   (filter #(= :message (:type %))))
+;;         build-msg (fn [m]
+;;                     {:type :message
+;;                      :options (->> (:contents r)
+;;                                    (filter #(= :option (:type %)))
+;;                                    (map #(hash-map {(:key %) (dissoc % :key)}))
+;;                                    merge)
+;;                      :package (:package r)
+                     
+;;         ]
+    
+       
+  
+
 (defn lex
   "Runs the lexical analyzer on a stream of tokens, typically output from the parser. The proto token stream may contain import statements (similar to C-style include directives, which import definitions from other files. The file-tokenizer is a function that takes this file string and resolves it to a stream of tokens."
   [stream file-tokenizer]
-  (let [_ (debug-print stream)
-        result (->> (run (match-proto-file) stream)
+  (let [result (->> (run (match-proto-file) stream)
                     (copy-meta stream))
         imports (filter #(= :import (:type %)) (:contents result))
         import-fn #(lex (file-tokenizer (get % :value)) file-tokenizer)]

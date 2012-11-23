@@ -94,7 +94,10 @@
                         (let->> [s (match-symbol)]
                                 (always {:member-type (:value s)
                                          :member-is-simple-type false})))
-           name (match-symbol)
+           name (choice (match-symbol)
+                        (let->> [kw (token #(= :keyword (:type %)))]
+                                (always {:type :symbol
+                                         :value (name (:value kw))})))
            _ (match-keywords :equals)
            position (match-int-value)
            option (either (let->> [_ (match-keywords
@@ -168,7 +171,8 @@
 (defn lex
   "Runs the lexical analyzer on a stream of tokens, typically output from the parser. The proto token stream may contain import statements (similar to C-style include directives, which import definitions from other files. The file-tokenizer is a function that takes this file string and resolves it to a stream of tokens."
   [stream file-tokenizer]
-  (let [result (->> (run (match-proto-file) stream)
+  (let [_ (debug-print stream)
+        result (->> (run (match-proto-file) stream)
                     (copy-meta stream))
         imports (filter #(= :import (:type %)) (:contents result))
         import-fn #(lex (file-tokenizer (get % :value)) file-tokenizer)]

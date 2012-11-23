@@ -1,5 +1,6 @@
 (ns parsering.common
-  (:require [clojure.java.io :as io]))
+  (:require [clojure.java.io :as io])
+  (:use     [clojure.pprint :only [pprint]]))
 
 (defn copy-meta
   "if x has meta data with value parsering-data it will copy and merge it into the meta-data of y"
@@ -27,5 +28,10 @@
     (if (.isDirectory d)
       d
       nil)))
+
+(defn debug-print
+  [x]
+  (pprint x)
+  x)
 
   

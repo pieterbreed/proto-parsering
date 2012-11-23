@@ -86,7 +86,7 @@
   (map-bytes byte-to-bits x n))
 
 (defmacro create-enc-type
-  [enc-type-name]
+  [enc-type-name & rest]
   `(defn ~enc-type-name [x#] {:value x# :enc-type (keyword ~(str enc-type-name))}))
 
 (create-enc-type double)
@@ -150,11 +150,80 @@
   [d]
   (show-as-bits (float (.floatValue (:value d)))))
 
+(defmulti value-decode
+  "Decodes a value based on the type"
+  :type)
+
+(defmulti varint-decode
+  "Decodes a varint value based on :enc-type"
+  :enc-type)
+
+(defmethod varint-decode :int32 [x] (unchecked-int (:value x)))
+(defmethod varint-decode :int64 [x] (:value x))
+(defmethod varint-decode :uint32 [x] (unchecked-int (:value x)))
+(defmethod varint-decode :uint64 [x] (:value x))
+(defmethod varint-decode :sint32 [x] (unchecked-int (from-zigzag (:value x))))
+(defmethod varint-decode :sint64 [x] (from-zigzag (:value x)))
+(defmethod varint-decode :bool [x] (condp = (:value x)
+                                     0 false
+                                     true))
+
+(defmethod value-decode
+  :varint [x] (varint-decode x))
+
+
+(defmulti sixty-four-bit-decode
+  "decodes a 64-bit value based on :enc-type"
+  :enc-type)
+
+(defmethod sixty-four-bit-decode :fixed64 [x] (:value x))
+(defmethod sixty-four-bit-decode :sfixed64 [x] (from-zigzag (:value x)))
+(defmethod sixty-four-bit-decode :fixed64 [x] (java.lang.Double/longBitsToDouble (:value x)))
+
+(defmethod value-decode
+  :64-bit [i] (sixty-four-bit-decode i))
+
+(defmulti length-delimited-decode
+  "decodes a length-delimited value based on enc-type"
+  :enc-type)
+
+(defmethod length-delimited-decode
+  :string [x]
+  (let [byts (->> x
+                  :value
+                  (map unchecked-byte)
+                  byte-array)]
+    (new java.lang.String byts "UTF8")))
+
+(defmethod length-delimited-decode
+  :bytes [xs]
+  (->> xs
+       :value
+       (map unchecked-byte)
+       byte-array))
+
+(defmulti thirty-two-bit-decode
+  "decodes a 32 bit value based on :enc-type"
+  :enc-type)
+
+(defmethod thirty-two-bit-decode :fixed32 [x] (-> x :value unchecked-int))
+(defmethod thirty-two-bit-decode :sfixed32 [x] (-> x :value from-zigzag unchecked-int))
+(defmethod thirty-two-bit-decode :float [x]
+  (-> x :value unchecked-int java.lang.Float/intBitsToFloat))
+
+(defmethod value-decode
+  :32-bit [x]
+  (thirty-two-bit-decode x))
+
+(defmethod value-decode
+  :length-delimited [x] (length-delimited-decode x))
+
 (defmulti varint-encode
   "Encodes an integral value into varint form"
   type)
 
 (def sig-bits
+  "Contains a map with key int values 0-7 with value the bit pattern for so many significant bits. Usefull to get the value out of the least significant bits for x nr of bits"
   (atom 
    (->> (range 8)
         (map #(list % (dec (math/expt 2 %))))
@@ -207,6 +276,32 @@
   java.lang.Integer [i]
   (varint-encode-bits i 32))
 
+(defn length-delimited-decode-bits
+  "decodes a length-delimited value into a sequence of bytes"
+  [bs]
+  (let [[bs length] (varint-decode-bits bs)]
+    [(drop length bs)
+     (take length bs)]))
+
+(defn fixed-bits-decode-bits
+  "Decodes a fixed number of bytes from the stream and returns a long with the value. Little-endian byte order is assumed in the stream"
+  [bs i]
+  [(drop i bs)
+   (-> (take i bs)
+       (reduce #(+ (bit-shift-left %1 8) ;; comes in little-endian byte order
+                   %2)))])
+  
+
+(defn sixty-four-bit-decode-bits
+  "Decodes a 64-bit value from the stream"
+  [bs]
+  (fixed-bits-decode-bits bs 8))
+
+(defn thirty-two-bit-decode-bits
+  "Decodes a 32-bit int value from the stream"
+  [bs]
+  (fixed-bits-decode-bits bs 4))
+
 ;; (defmulti encode-value
 ;;   "Takes a language value and encodes it in protobuf-serialized format"
 ;;   )
@@ -253,13 +348,31 @@
   "Decodes one value from a stream of bytes and conj it onto out"
   [bs out]
   (let [[bs tag] (decode-encoding-value bs)
-        [bs val] (condp = (:wire-type tag)
-                   :varint (varint-decode-bits bs))]
+        wire-type (:wire-type tag)
+        [bs val] (condp = wire-type
+                   :varint (varint-decode-bits bs)
+                   :length-delimited (length-delimited-decode-bits bs)
+                   :64-bit (sixty-four-bit-decode-bits bs)
+                   :32-bit (thirty-two-bit-decode-bits bs)
+                   )]
     (vector bs (conj out
-                     {:type :value
+                     {:type wire-type
                       :value val
                       :tag-nr (:tag-nr tag)}))))
-  
+
+
+(defn decode-protobuf-stream
+  "Decodes a stream of integers assumed to be in protobuf-encoded format until the string is consumed"
+  [bs]
+  (loop [byts bs
+         out []]
+    (if (nil? (first byts))
+      out
+      (let [[rem step-result] (decode-from-stream byts out)]
+        (recur rem step-result)))))
+
+
+;; (def data [0x12 0x07 0x74 0x65 0x73 0x74 0x69 0x6e 0x67])  
   
     
-     
+;; (def data [10, 24, 99, 111, 109, 46, 97, 108, 108, 97, 110, 103, 114, 97, 121, 46, 109, 111, 100, 101, 108, 46, 84, 101, 115, 116, 32, 1, 40, 0])

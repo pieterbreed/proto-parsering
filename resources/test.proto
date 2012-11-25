@@ -1,0 +1,26 @@
+package pb.co.za.protobuf;
+
+option somethi = true;
+
+enum High_enum
+{
+	HIGH = 0;
+	LOW = 1;
+}
+
+message Test 
+{
+	message Emb_test
+	{
+		optional sint64 emb_id = 2;
+	}
+	enum Emb_enum
+	{
+		UNIVERSAL = 0;
+		WEB = 1;
+	}
+	required int32 id = 1;
+	required Emb_test vvv = 2;
+	required Emb_enum eee = 3;
+	required High_enum hhh = 4;
+}

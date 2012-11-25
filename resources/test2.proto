@@ -1,0 +1,12 @@
+package pb.co.za.protobuf;
+
+option else = true;
+
+import "test.proto";
+
+message Test2
+{
+	required Test one = 1;
+	optional Test.Emb_test two = 2;
+	required High_enum three = 3;
+}

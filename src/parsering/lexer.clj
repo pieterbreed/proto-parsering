@@ -181,38 +181,6 @@
                    :package (:value p)
                    :contents contents})))
 
-(defn extract-options
-  "Extracts the options from a proto-file record and puts it in a map"
-  [not-messages]
-  (->> not-messages
-       (filter #(= :option (:type %)))
-       (map #(hash-map (:key %) (dissoc % :key :type)))
-       (apply merge)))
-
-(defn split-headers-and-messages
-  [file-record]
-  (let [parts (group-by #(= :message (:type %)) file-record)]
-    {:messages (get parts true)
-     :meta (get parts false)}))
-
-(defn extract-messages-and-namespace
-  "Goes through a list of records of :type :message and namespaces each. Also repeats the same thing for nested messages, with more specific namespace of enclosing type. Applies the same options"
-  [messages package options]
-  (letfn [(fully-namespace [r]
-            (-> (assoc r
-                  :full-name (->> (:name r)
-                                  (conj (split-namespace-elements package))
-                                  (reduce #(str %1 "." %2))))
-                (dissoc :name)))]
-    (let [these-msgs (map fully-namespace messages)
-          embeddeds (->> these-msgs
-                         (map #(vector (:full-name %) (:nesteds %)))
-                         (map #(extract-messages-and-namespace (second %)
-                                                               (first %)
-                                                               options))
-                         (apply concat))]
-      (concat (map #(dissoc % :nesteds) these-msgs) embeddeds))))
-
 
        
 ;; (defn qualify-proto-record
@@ -232,17 +200,18 @@
                      
 ;;         ]
     
-       
-  
-
 (defn lex
   "Runs the lexical analyzer on a stream of tokens, typically output from the parser. The proto token stream may contain import statements (similar to C-style include directives, which import definitions from other files. The file-tokenizer is a function that takes this file string and resolves it to a stream of tokens."
   [stream file-tokenizer]
   (let [result (->> (run (match-proto-file) stream)
                     (copy-meta stream))
-        imports (filter #(= :import (:type %)) (:contents result))
+        parts (group-by #(= :import (:type %)) (:contents result))
         import-fn #(lex (file-tokenizer (get % :value)) file-tokenizer)]
-    (apply list result (flatten (map import-fn imports)))))
+    (apply list
+           (assoc result
+             :contents
+             (get parts false))
+           (flatten (map import-fn (get parts true))))))
     
 (defn parse-proto-file
   "Takes a filename and a function that turns filenames into streams of chars. If the resolver brings back meta-data with the value of :parsering-data it will be copied to the result stream"

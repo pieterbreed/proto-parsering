@@ -1,5 +1,5 @@
 (ns parsering.massage
-  (:use [parsering.lexer :only [split-namespace-elements]]))
+  (:use [parsering.lexer :only [split-namespace-elements parse-proto-file]]))
 
 (defn extract-options
   "Extracts the options from a proto-file record and puts it in a map"
@@ -34,4 +34,15 @@
                                                      options))
                          (apply concat))]
       (concat (map #(dissoc % :nesteds :enums) these-msgs) embeddeds))))
+
+(defn load-proto-file
+  "Loads a protobuf file, resolves imports, does massaging on the file structure to make it into something that can be used for code-gen"
+  [filename resolver]
+  (-> (lex/parse-proto-file filename resolver)
+      (
+
+;; lexer.clj
+;; (def fsr (parsering.core/create-fs-resolver "resources"))
+;; 
+
 

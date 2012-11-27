@@ -89,8 +89,8 @@
   [enc-type-name & rest]
   `(defn ~enc-type-name [x#] {:value x# :enc-type (keyword ~(str enc-type-name))}))
 
-(create-enc-type double)
-(create-enc-type float)
+; (create-enc-type double)
+; (create-enc-type float)
 (create-enc-type int32)
 (create-enc-type int64)
 (create-enc-type uint32)
@@ -103,7 +103,7 @@
 (create-enc-type sfixed64)
 (create-enc-type bool)
 (create-enc-type string)
-(create-enc-type bytes)
+; (create-enc-type bytes)
 
 (defn discriminate
   "Returns a map with properties of x"

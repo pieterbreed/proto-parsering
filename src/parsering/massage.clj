@@ -40,26 +40,23 @@
   "Goes through a message, finds symbol references in the message members and tries to resolve them using the nearest symbol in the name space"
   [message-record ns-symbols]
   (let [rmsgns (->> (:full-name message-record) ;; reverse message namespace elements
-                    split-namespace-elements
-                    reverse)
+                    split-namespace-elements)
         limit (count rmsgns)]
     (letfn [(test-symbol [name]
               (contains? ns-symbols name))
             (qualify-symbol [member-record]
-              (println "\n")
               (let [member-parts (-> (:member-type member-record)
                                      split-namespace-elements
                                      reverse)]
-                (loop [i 0]
+                (loop [i limit]
                   (let [tested (->> (concat member-parts
-                                            (take i rmsgns))
+                                            (reverse (take i rmsgns)))
                                     reverse
                                     (reduce #(str %1 "." %2)))]
-                    (println (str "testing: " tested))
                     (cond
                      (test-symbol tested) (assoc member-record :full-name tested)
-                     (< limit i) (assoc member-record :full-name "UNKNOWN")
-                     :else (recur (inc i)))))))
+                     (= -1 i) (assoc member-record :full-name nil)
+                     :else (recur (dec i)))))))
             (update-symbol-ref [member-record]
               (if (:member-is-simple-type member-record)
                 member-record
@@ -71,18 +68,23 @@
 (defn load-proto-file
   "Loads a protobuf file, resolves imports, does massaging on the file structure to make it into something that can be used for code-gen, returns a map with keys as fully qualified names and values maps with definitions"
   [filename resolver]
-  (->> (parse-proto-file filename resolver)
-       (map #(let [{:keys [meta messages]} (split-headers-and-messages (:contents %))
-                   package (:package %)]
-               {:meta meta
-                :messages messages
-                :package package}))
-       (map #(assoc %
-               :options (extract-options (:meta %))))
-       (map #(let [{:keys [messages options package]} %]
-               (flatten-declarations messages package options)))
-       (apply concat '())
-       (reduce #(assoc %1 (:full-name %2) %2) {})))
+  (let [type-dictionary (->> (parse-proto-file filename resolver)
+                             (map #(let [{:keys [meta messages]} (split-headers-and-messages (:contents %))
+                                         package (:package %)]
+                                     {:meta meta
+                                      :messages messages
+                                      :package package}))
+                             (map #(assoc %
+                                     :options (extract-options (:meta %))))
+                             (map #(let [{:keys [messages options package]} %]
+                                     (flatten-declarations messages package options)))
+                             (apply concat '())
+                             (reduce #(assoc %1 (:full-name %2) %2) {}))
+        key-set (set (keys type-dictionary))]
+    (reduce #(assoc %1 %2 (resolve-symbol-names (get %1 %2) key-set))
+            type-dictionary
+            (keys type-dictionary))))
+    
 
 
 

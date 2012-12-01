@@ -85,9 +85,6 @@
             type-dictionary
             (keys type-dictionary))))
     
-
-
-
 ;; lexer.clj
 ;; (def fsr (parsering.core/create-fs-resolver "resources"))
 ;; (-> (parsering.lexer/parse-proto-file "test2.proto" fsr) first :contents split-headers-and-messages pprint)

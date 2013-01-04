@@ -66,3 +66,10 @@
   [x n]
   (map-bytes byte-to-bits x n))
 
+(defn bits-to-integer
+  "gets a seq of seqs of binary values and makes the integer it corresponse to"
+  [bs]
+  (->> bs
+       (map bits-to-byte)
+       (reduce #(+ (bit-shift-left %1 8) %2))))
+

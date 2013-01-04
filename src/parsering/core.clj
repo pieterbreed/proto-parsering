@@ -1,8 +1,8 @@
 (ns parsering.core
   (:use [clojure.pprint]
         [clojure.tools.cli :only [cli]]
-        [clojure.core]
-        [proto.encoder :only [decode-protobuf-stream]])
+        [clojure.core])
+;        [proto.encoder :only [decode-protobuf-stream]])
   (:require [parsering.lexer :as lex])
   (:gen-class))
 

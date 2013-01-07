@@ -1,0 +1,12 @@
+package pb.co.za.protobuf;
+
+option ppp = true;
+
+message Simple
+{
+	required int32 oneInt32 = 1000;
+	optional sint32 twoSint32 = 22;
+	required double threeDouble = 3456;
+    required string fourString = 300;
+    optional sint64 fiveSint64 = 11;
+}

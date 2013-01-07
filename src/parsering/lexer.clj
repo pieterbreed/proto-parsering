@@ -181,24 +181,26 @@
                    :package (:value p)
                    :contents contents})))
 
-
+(defn qualify-file-record
+  "Qualifies every message definition in a proto-file with namespaces and options"
+  
        
-;; (defn qualify-proto-record
-;;   "Does a transformation on the record by fully qualifying type names and capturing options and packages within the scope that they are used. Makes it easier to be used in a code-gen context."
-;;   [file-record]
-;;   (let [{:keys [messages meta]} (split-headers-and-messages (:contents file-record))
-;;         file-options (extract-options meta)
-;;         msgs (->> (:contents r)
-;;                   (filter #(= :message (:type %))))
-;;         build-msg (fn [m]
-;;                     {:type :message
-;;                      :options (->> (:contents r)
-;;                                    (filter #(= :option (:type %)))
-;;                                    (map #(hash-map {(:key %) (dissoc % :key)}))
-;;                                    merge)
-;;                      :package (:package r)
+(defn qualify-proto-record
+  "Does a transformation on the record by fully qualifying type names and capturing options and packages within the scope that they are used. Makes it easier to be used in a code-gen context."
+  [file-record]
+  (let [{:keys [messages meta]} (split-headers-and-messages (:contents file-record))
+        file-options (extract-options meta)
+        msgs (->> (:contents r)
+                  (filter #(= :message (:type %))))
+        build-msg (fn [m]
+                    {:type :message
+                     :options (->> (:contents r)
+                                   (filter #(= :option (:type %)))
+                                   (map #(hash-map {(:key %) (dissoc % :key)}))
+                                   merge)
+                     :package (:package r)
                      
-;;         ]
+        ]
     
 (defn lex
   "Runs the lexical analyzer on a stream of tokens, typically output from the parser. The proto token stream may contain import statements (similar to C-style include directives, which import definitions from other files. The file-tokenizer is a function that takes this file string and resolves it to a stream of tokens."
@@ -221,6 +223,14 @@
                              parser/parse))]
     (lex (import-fn file-name)
          #(import-fn %))))
+
+(defn resource-file-resolver
+  "creates a file resolver that reads from the resource path"
+  []
+  (fn [f]
+    (-> (clojure.java.io/resource f)
+        (.getFile)
+        slurp)))
 
 (defn main
   "The lex app which shows a symbolic representation of the protobuf files"

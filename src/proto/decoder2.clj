@@ -43,15 +43,18 @@
                                   5 :32-bit} type)
                      :tag-nr tag-nr}))))
 
-;; (defparser tag
-;;   []
-  
+(defparser item
+  []
+  (let->> [t (tag)
+           val (condp (:wire-type t) =
+                 :varint (varint)
+                 :64-bit (fixed-64)
+                 :length-delimited (length-delimited)
+                 :32-bit (fixed-32))]
+          (always (assoc t :value val))))
 
-;; (defparser item
-;;   []
-;;   (let->> [t (tag)]
-
-;; (defparser proto-stream
-;;   []
-  
-;;   (always nil))
+(defparser proto-stream
+  []
+  (let->> [body (many1 (item))
+           _ (eof)]
+  (always body)))

@@ -62,9 +62,13 @@
    [8]]
   [{:wire-type :64-bit
     :tag-nr 1}
-   [9]]
-  [{:wire-type :32-bit
-    :tag-nr 300}
-   [144 101]])
+   [9]])
+
+(defunzip-val-test item-works
+  "that item unzips a tag with a value properly"
+  item
+  [{:wire-type :varint
+    :tag-nr 1
+    :value 150} [0x08 0x96 0x01]])
 
 (run-all-tests #"proto.decoder2-tests")

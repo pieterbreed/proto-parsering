@@ -259,7 +259,8 @@
                              (map #(namespace-message-record % package)))
         msgs (->> namespaced-msgs
                   (mapcat extract-all-messages)
-                  (map #(assoc % :options options)))
+                  (map #(assoc % :options options))
+                  (map #(dissoc % :enums)))
         msg-enums (->> namespaced-msgs
                        (mapcat extract-all-enums))
         enums (->> (:contents fr)

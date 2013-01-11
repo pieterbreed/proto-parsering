@@ -302,13 +302,19 @@
            (flatten (map import-fn (get parts true))))))
     
 (defn parse-proto-file
-  "Takes a filename and a function that turns filenames into streams of chars. If the resolver brings back meta-data with the value of :parsering-data it will be copied to the result stream"
+  "Takes a filename and a function that turns filenames into streams of chars. Returns a seq of message records that each might contain message, enum definitions, declare packages, options etc." 
 
   [file-name file-resolver]
   (letfn [(import-fn [f] (-> (file-resolver f)
                              parser/parse))]
     (lex (import-fn file-name)
          #(import-fn %))))
+
+(defn parse-and-process-file
+  "parses a proto file, applies options to definitions, namespace all items and returns a flat list with all of the full qualified declarations and references"
+  [file-name file-resolver]
+  (->> (parse-proto-file file-name file-resolver)
+       (mapcat qualify-file-record)))
 
 (defn resource-file-resolver
   "creates a file resolver that reads from the resource path"

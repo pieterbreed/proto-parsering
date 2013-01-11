@@ -1,5 +1,7 @@
 package pb.co.za.protobuf;
 
+// Used as part of the unit testing
+ 
 option somethi = true;
 
 enum EnumA

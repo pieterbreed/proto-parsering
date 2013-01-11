@@ -73,6 +73,17 @@
         {:nesteds [{:nesteds [], :enums [], :message-members [{:type :message-member, :modifier :required, :member-type :double, :member-is-simple-type true, :name "first", :option nil, :tag 1} {:type :message-member, :modifier :repeated, :member-type :float, :member-is-simple-type true, :name "second", :option nil, :tag 2}], :type :message, :name "inner"}], :enums [], :message-members [{:type :message-member, :modifier :optional, :member-type :bool, :member-is-simple-type true, :name "third", :option nil, :tag 3}], :type :message, :name "outer"})))
 
 
+(deftest namespaces
+  (testing "that namespaces are resolved accurately wrt package and embeddedness"
+    (let [resolver (resource-file-resolver)]
+      (is (= #{["pb" "co" "za" "protobuf" "MessageB"]
+               ["pb" "co" "za" "protobuf" "MessageB" "MessageBA"]
+               ["pb" "co" "za" "protobuf" "MessageB" "EnumBB"]
+               ["pb" "co" "za" "protobuf" "MessageB" "MessageBA" "EnumBAA"]
+               ["pb" "co" "za" "protobuf" "EnumA"]}
+             (->> (parse-and-process-file "enums.proto" resolver)
+                  (map :full-ns-name)
+                  (apply hash-set)))))))
 
 
 (run-all-tests #"parsering.lexer-test")

@@ -45,7 +45,7 @@
              (always (:value pac)))
      (always ""))]
    (always {:type :package
-            :value package})))
+            :value (split-namespace-elements package)})))
 
 (defparser match-option []
   (let->> [_ (match-keywords :option)
@@ -181,26 +181,112 @@
                    :package (:value p)
                    :contents contents})))
 
+(defn extract-file-options
+  "extracts the options in the file into a structure that can be embedded into a message struc"
+  [fr]
+  (->> fr
+       :contents
+       (filter #(= :option (:type %)))
+       (map #(hash-map (:key %)
+                       (select-keys % [:value-type :value])))
+       (apply merge {})))
+
+(defn namespace-enum-record
+  "Adds a full namespace property to a enum record"
+  [er ns]
+  {:pre [(and (vector? ns)
+              (map? er)
+              (= :enum (:type er)))]}
+  (assoc er :full-ns-name (conj ns (:name er))))
+
+(defn namespace-enum-records
+  "Adds full ns to all enums in a file record. Reads the :full-ns-name from the message record, returns the modified message record"
+  [mr]
+  {:pre [(and (map? mr)
+              (contains? mr :full-ns-name))]}
+  (let [ns (:full-ns-name mr)
+        enums (get mr :enums [])]
+    (assoc mr
+      :enums (map #(namespace-enum-record % ns) enums))))
+
+(declare namespace-message-record)
+
+(defn namespace-message-records
+  "adds full ns to all nesteds in a message record"
+  [mr]
+  {:pre [(and (map? mr)
+              (contains? mr :full-ns-name))]}
+  (let [ns (:full-ns-name mr)
+        nesteds (get mr :nesteds [])]
+    (assoc mr
+      :nesteds (map #(namespace-message-record %1 ns) nesteds))))
+
+(defn namespace-message-record
+  "Adds a full namespace property to a message record. ns is a vector of strings, mr is the message record"
+  [mr ns]
+  {:pre [(and (vector? ns)
+              (map? mr)
+              (= :message (:type mr)))]}
+  (let [new-ns (conj ns (:name mr))]
+    (-> (assoc mr :full-ns-name new-ns)
+        namespace-enum-records
+        namespace-message-records)))
+
+(defn extract-all-messages
+  "extracts nested messages from a message record"
+  [mr]
+  (concat [(dissoc mr :nesteds)]
+          (mapcat extract-all-messages (:nesteds mr))))
+
+(defn extract-all-enums
+  "extracts all enums from a message record and all nested message records. Assums that the message record already has a member called :full-ns-name"
+  [mr]
+  {:pre [(and (map? mr)
+              (contains? mr :full-ns-name))]}
+  (let [this-ns (:full-ns-name mr)
+        this-enums (->> (:enums mr)
+                        (map #(namespace-enum-record % this-ns)))]
+  (concat this-enums
+          (mapcat extract-all-enums (:nesteds mr)))))
+
 (defn qualify-file-record
-  "Qualifies every message definition in a proto-file with namespaces and options"
-  
+  "Qualifies every message definition in a proto file record with namespaces and options"
+  [fr]
+  (let [{package :package} fr
+        options (extract-file-options fr)
+        namespaced-msgs (->> (:contents fr)
+                             (filter #(= :message (:type %)))
+                             (map #(namespace-message-record % package)))
+        msgs (->> namespaced-msgs
+                  (mapcat extract-all-messages)
+                  (map #(assoc % :options options)))
+        msg-enums (->> namespaced-msgs
+                       (mapcat extract-all-enums))
+        enums (->> (:contents fr)
+                   (filter #(= :enum (:type %)))
+                   (map #(namespace-enum-record % package))
+                   (concat msg-enums)
+                   (map #(assoc % :options options)))
+        msg-enums (->> msgs
+                       (map namespace-enum-records))]
+    (concat msgs enums)))
        
-(defn qualify-proto-record
-  "Does a transformation on the record by fully qualifying type names and capturing options and packages within the scope that they are used. Makes it easier to be used in a code-gen context."
-  [file-record]
-  (let [{:keys [messages meta]} (split-headers-and-messages (:contents file-record))
-        file-options (extract-options meta)
-        msgs (->> (:contents r)
-                  (filter #(= :message (:type %))))
-        build-msg (fn [m]
-                    {:type :message
-                     :options (->> (:contents r)
-                                   (filter #(= :option (:type %)))
-                                   (map #(hash-map {(:key %) (dissoc % :key)}))
-                                   merge)
-                     :package (:package r)
+;; (defn qualify-proto-record
+;;   "Does a transformation on the record by fully qualifying type names and capturing options and packages within the scope that they are used. Makes it easier to be used in a code-gen context."
+;;   [file-record]
+;;   (let [{:keys [messages meta]} (split-headers-and-messages (:contents file-record))
+;;         file-options (extract-options meta)
+;;         msgs (->> (:contents r)
+;;                   (filter #(= :message (:type %))))
+;;         build-msg (fn [m]
+;;                     {:type :message
+;;                      :options (->> (:contents r)
+;;                                    (filter #(= :option (:type %)))
+;;                                    (map #(hash-map {(:key %) (dissoc % :key)}))
+;;                                    merge)
+;;                      :package (:package r)
                      
-        ]
+;;         ]
     
 (defn lex
   "Runs the lexical analyzer on a stream of tokens, typically output from the parser. The proto token stream may contain import statements (similar to C-style include directives, which import definitions from other files. The file-tokenizer is a function that takes this file string and resolves it to a stream of tokens."

@@ -8,9 +8,9 @@
                            (and (= :package (:type pac))
                                 (= package (:value pac))))
 
-         "package one.two.three;" "one.two.three"
+         "package one.two.three;" ["one" "two" "three"]
 
-         "" "")))
+         "" [])))
 
 (deftest single-option
   (testing "that options can be parsed"
@@ -73,7 +73,6 @@
         {:nesteds [{:nesteds [], :enums [], :message-members [{:type :message-member, :modifier :required, :member-type :double, :member-is-simple-type true, :name "first", :option nil, :tag 1} {:type :message-member, :modifier :repeated, :member-type :float, :member-is-simple-type true, :name "second", :option nil, :tag 2}], :type :message, :name "inner"}], :enums [], :message-members [{:type :message-member, :modifier :optional, :member-type :bool, :member-is-simple-type true, :name "third", :option nil, :tag 3}], :type :message, :name "outer"})))
 
 
-                                
-                              
+
 
 (run-all-tests #"parsering.lexer-test")

@@ -1,0 +1,28 @@
+package pb.co.za.protobuf;
+
+option somethi = true;
+
+enum EnumA
+{
+	HIGH = 0;
+	LOW = 1;
+}
+
+message MessageB
+{
+	message MessageBA
+	{
+		enum EnumBAA
+		{
+			HIGLY = 1;
+			UNLIKELY = 2;
+		}
+		required int32 id = 1;
+	}
+	enum EnumBB
+	{
+		UNIVERSAL = 0;
+		WEB = 1;
+	}
+	required int32 id = 1;
+}

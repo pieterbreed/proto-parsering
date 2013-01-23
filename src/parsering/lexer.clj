@@ -104,8 +104,15 @@
                                                              :enum)]
                                          (always {:member-type (:value kw)
                                                   :member-is-simple-type true})))
-                        (let->> [s (match-symbol)]
+                        (let->> [s (either (let->> [_ (match-keywords :point)
+                                                    s (match-symbol)]
+                                                   (always {:fully-qualified true
+                                                            :value (:value s)}))
+                                           (let->> [s (match-symbol)]
+                                                   (always {:fully-qualified false
+                                                            :value (:value s)})))]
                                 (always {:member-type (:value s)
+                                         :fully-qualified (:fully-qualified s)
                                          :member-is-simple-type false})))
            name (choice (match-symbol)
                         (let->> [kw (token #(= :keyword (:type %)))]
@@ -131,6 +138,7 @@
                    :modifier (:value modifier)
                    :member-type (:member-type type)
                    :member-is-simple-type (:member-is-simple-type type)
+                   :member-is-fully-qualified (get type :fully-qualified false)
                    :name (:value name)
                    :option option
                    :tag (:value position)})))

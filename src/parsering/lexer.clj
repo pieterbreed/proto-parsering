@@ -279,24 +279,30 @@
         msg-enums (->> msgs
                        (map namespace-enum-records))]
     (concat msgs enums)))
+
+(defn create-namespace
+  "Takes a list of definitions and makes a namespace (map) out of each item"
+  [xs]
+  (apply merge (map #(hash-map (:full-ns-name %) %) xs)))
+
+(defn resolve-references
+  "resolve all symbol references in message-members in a namespace ns"
+  [ns]
+  (letfn [(resolve-member [x]
+            (if (= true (:member-is-simple-type x))
+              x
+              (assoc x :resolved true)))
+          (resolve-message [x]
+            (assoc x
+              :message-members
+              (map resolve-member (:message-members x))))
+          (resolve-x [x]
+            (if (= :message (:type x))
+              (resolve-message x)
+              x))]
+    (->> (map #(hash-map (first %) (-> % second resolve-x)) ns)
+         (apply merge))))
        
-;; (defn qualify-proto-record
-;;   "Does a transformation on the record by fully qualifying type names and capturing options and packages within the scope that they are used. Makes it easier to be used in a code-gen context."
-;;   [file-record]
-;;   (let [{:keys [messages meta]} (split-headers-and-messages (:contents file-record))
-;;         file-options (extract-options meta)
-;;         msgs (->> (:contents r)
-;;                   (filter #(= :message (:type %))))
-;;         build-msg (fn [m]
-;;                     {:type :message
-;;                      :options (->> (:contents r)
-;;                                    (filter #(= :option (:type %)))
-;;                                    (map #(hash-map {(:key %) (dissoc % :key)}))
-;;                                    merge)
-;;                      :package (:package r)
-                     
-;;         ]
-    
 (defn lex
   "Runs the lexical analyzer on a stream of tokens, typically output from the parser. The proto token stream may contain import statements (similar to C-style include directives, which import definitions from other files. The file-tokenizer is a function that takes this file string and resolves it to a stream of tokens."
   [stream file-tokenizer]
@@ -322,8 +328,11 @@
 (defn parse-and-process-file
   "parses a proto file, applies options to definitions, namespace all items and returns a flat list with all of the full qualified declarations and references"
   [file-name file-resolver]
-  (->> (parse-proto-file file-name file-resolver)
-       (mapcat qualify-file-record)))
+  (let [ns (->> (parse-proto-file file-name file-resolver)
+                (mapcat qualify-file-record)
+                create-namespace
+                resolve-references)]
+    ns))
 
 (defn resource-file-resolver
   "creates a file resolver that reads from the resource path"

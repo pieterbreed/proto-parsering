@@ -136,7 +136,7 @@
                    :tag (:value position)})))
 
 ; forward declaration so that messages may have other messages in them
-(def match-message)
+(declare match-message)
 
 (defparser match-message-item []
   (choice (let->> [msg (match-message)]

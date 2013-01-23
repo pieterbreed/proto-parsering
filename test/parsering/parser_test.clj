@@ -78,6 +78,10 @@
           {:type :keyword, :value :semicolon}
           {:type :keyword, :value :message}
           {:type :symbol, :value "Hey"}))))
+
+(deftest fully-qualified-symbols-test
+  (testing "that symbols can be fully qualified"
+    
            
 
 (run-all-tests #"parsering.parser-test")

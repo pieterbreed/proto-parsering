@@ -1,0 +1,11 @@
+package pb.co.za.protobuf;
+
+option else = true;
+
+import "test.proto";
+
+message TestFullyQualified
+{
+	required .pb.co.za.protobuf.Test.Emb_test one = 1;
+    required Test two = 2;
+}

@@ -1,0 +1,12 @@
+package pb.co.za.embed;
+
+// Used as part of the unit testing
+
+message A
+{
+	message B
+	{
+		required int32 id = 1;
+	}
+	required int32 id = 1;
+}

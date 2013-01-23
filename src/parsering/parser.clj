@@ -75,14 +75,25 @@
                              (char \_)))]
           (always (str frst (apply str rst)))))
 
-(defparser symbol-value []
+(defparser symbol-full-value []
   (let->> [frst (symbol-value-word)
            rst (many (attempt (>> (char \.)
                                   (symbol-value-word))))]
           (always {:type :symbol
+                   :fully-qualified false
                    :value (->> rst
                                (apply conj [] frst)
                                (clojure.string/join "."))})))
+
+(defparser symbol-value []
+  (always (symbol-full-value)))
+
+
+;; (defparser symbol-value []
+;;   (choice (let->> [_ (char \.)
+;;                    v (symbol-full-value)]
+;;                   (always assoc v :fully-qualified true))
+;;           (always (symbol-full-value))))
 
 (defn -flags-item [flag-str flag-symbol-str]
   (list `attempt

@@ -1,0 +1,12 @@
+package pb.co.za.embedtest;
+
+// Used as part of the unit testing
+
+import "symbol_resolution.proto";
+
+message A
+{
+	required embed.A a = 1;
+	required embed.A.B b = 2;
+	required .pb.co.za.embed.A aa = 3;
+}

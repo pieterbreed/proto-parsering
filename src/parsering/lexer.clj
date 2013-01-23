@@ -285,23 +285,47 @@
   [xs]
   (apply merge (map #(hash-map (:full-ns-name %) %) xs)))
 
+(defn make-all-namespace-resolutions
+  "makes up a bunch of names in order of likelyhood that a symbol might resolve to. Similar to c++ ns resolution. name-parts is the broken-down parts of the declared symbol, a vector. enclosing-ns is also a vector and the namespace parts of the type that encloses this reference."
+  [name-parts enclosing-ns]
+  (let [names (seq name-parts)
+        ns (seq enclosing-ns)]
+    (loop [res []
+           rst ns]
+      (if (empty? rst) (conj res (vec names))
+          (recur (conj res (vec (concat rst names)))
+                 (butlast rst))))))
+
 (defn resolve-references
   "resolve all symbol references in message-members in a namespace ns"
   [ns]
-  (letfn [(resolve-member [x]
-            (if (= true (:member-is-simple-type x))
-              x
-              (assoc x :resolved true)))
-          (resolve-message [x]
-            (assoc x
-              :message-members
-              (map resolve-member (:message-members x))))
-          (resolve-x [x]
-            (if (= :message (:type x))
-              (resolve-message x)
-              x))]
-    (->> (map #(hash-map (first %) (-> % second resolve-x)) ns)
-         (apply merge))))
+  (let [all-symbols (keys ns)]
+    (letfn [(symbol-exists [s]
+              (if (some? #(= % s) all-symbols)
+                true false))
+            (make-all-name-variations [member-type-name message-full-name]
+              ;; gets all possible symbol names for a type
+              ;; based on the enclosing message's fully qualified name
+              ;; there are specific rules for how names are resolved
+              (loop [res []
+                     names message-full-name]
+                (if (empty? names) res
+                    (recur (conj res
+              
+            (resolve-member [x]
+              (if (= true (:member-is-simple-type x))
+                x
+                (assoc x :resolved true)))
+            (resolve-message [x]
+              (assoc x
+                :message-members
+                (map resolve-member (:message-members x))))
+            (resolve-x [x]
+              (if (= :message (:type x))
+                (resolve-message x)
+                x))]
+      (->> (map #(hash-map (first %) (-> % second resolve-x)) ns)
+           (apply merge)))))
        
 (defn lex
   "Runs the lexical analyzer on a stream of tokens, typically output from the parser. The proto token stream may contain import statements (similar to C-style include directives, which import definitions from other files. The file-tokenizer is a function that takes this file string and resolves it to a stream of tokens."

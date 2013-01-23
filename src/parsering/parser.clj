@@ -86,14 +86,11 @@
                                (clojure.string/join "."))})))
 
 (defparser symbol-value []
-  (always (symbol-full-value)))
-
-
-;; (defparser symbol-value []
-;;   (choice (let->> [_ (char \.)
-;;                    v (symbol-full-value)]
-;;                   (always assoc v :fully-qualified true))
-;;           (always (symbol-full-value))))
+  (choice (let->> [_ (char \.)
+                   v (symbol-full-value)]
+                  (always assoc v :fully-qualified true))
+          (let->> [s (symbol-full-value)]
+                  (always s))))
 
 (defn -flags-item [flag-str flag-symbol-str]
   (list `attempt

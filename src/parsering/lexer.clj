@@ -287,7 +287,7 @@
 
 (defn make-all-namespace-resolutions
   "makes up a bunch of names in order of likelyhood that a symbol might resolve to. Similar to c++ ns resolution. name-parts is the broken-down parts of the declared symbol, a vector. enclosing-ns is also a vector and the namespace parts of the type that encloses this reference."
-  [name-parts enclosing-ns]
+  [enclosing-ns name-parts]
   (let [names (seq name-parts)
         ns (seq enclosing-ns)]
     (loop [res []
@@ -295,6 +295,23 @@
       (if (empty? rst) (conj res (vec names))
           (recur (conj res (vec (concat rst names)))
                  (butlast rst))))))
+
+(defn make-symbol-resolver
+  "returns a function that can resolve a symbol against the namespace"
+  [ns]
+  (fn [enclosing-type-name symbol-name]
+    (let [names (->> (make-all-namespace-resolutions enclosing-type-name
+                                                     symbol-name)
+                     (sort-by count))]
+      (println (str names))
+      (loop [test (first names)
+             rst (rest names)]
+        (if (nil? test)
+          (throw (java.lang.Exception. "symbol cannot be found in namespace"))
+          (if (contains? ns test)
+            test
+            (recur (first rst)
+                   (rest rst))))))))
 
 (defn resolve-references
   "resolve all symbol references in message-members in a namespace ns"

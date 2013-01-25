@@ -303,7 +303,6 @@
     (let [names (->> (make-all-namespace-resolutions enclosing-type-name
                                                      symbol-name)
                      (sort-by count))]
-      (println (str names))
       (loop [test (first names)
              rst (rest names)]
         (if (nil? test)
@@ -316,27 +315,38 @@
 (defn resolve-references
   "resolve all symbol references in message-members in a namespace ns"
   [ns]
-  (let [all-symbols (keys ns)]
-    (letfn [(symbol-exists [s]
-              (if (some? #(= % s) all-symbols)
-                true false))
-            (make-all-name-variations [member-type-name message-full-name]
-              ;; gets all possible symbol names for a type
-              ;; based on the enclosing message's fully qualified name
-              ;; there are specific rules for how names are resolved
-              (loop [res []
-                     names message-full-name]
-                (if (empty? names) res
-                    (recur (conj res
-              
-            (resolve-member [x]
-              (if (= true (:member-is-simple-type x))
-                x
-                (assoc x :resolved true)))
+  (let [all-symbols (keys ns)
+        ns-resolver (make-symbol-resolver ns)]
+    (letfn [(resolve-member [x enc-type]
+              (cond
+
+               ;; already fully specified, but must be checked
+               ;; whether it can be found in the namespace
+               (:member-is-fully-qualified x)
+               (let [full-name (split-namespace-elements (:member-type x))]
+                 (if (not (contains? ns full-name))
+                   (throw (java.lang.Exception. (str "cannot find the fully specified symbol "
+                                                     (:member-type x))))
+                   (assoc x
+                     :member-type
+                     full-name)))
+
+               ;; must be resolved against the namespace elements
+               (and (= false
+                       (:member-is-fully-qualified x)
+                       (:member-is-simple-type x)))
+               (assoc x
+                 :member-type
+                 (ns-resolver enc-type
+                              (split-namespace-elements
+                               (:member-type x))))
+
+               ;; probably a simple type (:int etc) so we can leave it as is
+               true x))
             (resolve-message [x]
               (assoc x
                 :message-members
-                (map resolve-member (:message-members x))))
+                (map #(resolve-member % (:full-ns-name x)) (:message-members x))))
             (resolve-x [x]
               (if (= :message (:type x))
                 (resolve-message x)

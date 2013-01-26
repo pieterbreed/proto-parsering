@@ -1,8 +1,6 @@
 package pb.co.za.protobuf;
 
-option ppp = true;
-
-message Simple
+message SimpleMsg
 {
 	required int32 oneInt32 = 1000;
 	optional sint32 twoSint32 = 22;

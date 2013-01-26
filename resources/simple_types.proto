@@ -1,0 +1,10 @@
+package pb.co.za.protobuf;
+
+message SimpleTypesMsg
+{
+	required int32 smallInt = 1;
+	required sint32 signedInt = 2;
+	required double justADouble = 3;
+    	required string stringy = 4;
+    	optional sint64 signedBigInt = 5;
+}

@@ -71,4 +71,18 @@
     :tag-nr 1
     :value 150} [0x08 0x96 0x01]])
 
+;; Kom ons bou 'n 'SimpleTypesMsg'!
+;; signed int: -12
+;; double :32.23
+;; small int :22
+;; string :this is a string
+;; signed big int: -33344455566
+
+;; Result: [ 8 -12 -1 -1 -1 -1 -1 -1 -1 -1 1 16 44 25 61 10 -41 -93 112 29 64 64 34 16 116 104 105 115 32 105 115 32 97 32 115 116 114 105 110 103 40 -101 -114 -32 -73 -8 1] 
+
+(deftest real-simple-message-decode-test
+  (testing "we're deserializing a real message here encoded using google protobufs encoder"
+    
+
+
 (run-all-tests #"proto.decoder2-tests")

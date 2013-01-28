@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [char])
   (:use [clojure.test]
         [proto.decoder2]
-        [the.parsatron]))
+        [the.parsatron]
+        [debug.debug]))
 
 (defn make-bytes
   "maps uncheked-byte on the input seq"
@@ -80,9 +81,9 @@
 
 ;; Result: [ 8 -12 -1 -1 -1 -1 -1 -1 -1 -1 1 16 44 25 61 10 -41 -93 112 29 64 64 34 16 116 104 105 115 32 105 115 32 97 32 115 116 114 105 110 103 40 -101 -114 -32 -73 -8 1] 
 
-(deftest real-simple-message-decode-test
-  (testing "we're deserializing a real message here encoded using google protobufs encoder"
+;; (deftest real-simple-message-decode-test
+;;   (testing "we're deserializing a real message here encoded using google protobufs encoder"
     
 
 
-(run-all-tests #"proto.decoder2-tests")
+(with-debugging (run-all-tests #"proto.decoder2-tests"))

@@ -1,41 +1,14 @@
 (ns proto.decoder2
   (:refer-clojure :exclude [char])
-  (:use [the.parsatron]))
+  (:use [the.parsatron]
+        [debug.debug]))
 
-(def ^:dynamic *debug* false)
-
-(def *make-debug-code*
-  "influences the debug macro. If this value is true the code that generates the calls to debug is generated, otherwise it is left out of the syntax tree altogether, as is appropriate for run-time"
-  true)
-;; this must go to false when code is checked in
-;; otherwise extra code is being generated that is
-;; only usefull for debugging
-
-(defmacro with-debugging
-  "Turns debugging output on to *out* while parsing byte streams only for the context of forms"
-  [& forms]
-  `(binding [*debug* true]
-     ~@forms))
-
-(defn debug-fn
-  [fmt & args]
-  "performs (format) on str and args and writes the result to *out* of *debug* is not false"
-  (if *debug*
-    (let [res (apply format fmt args)]
-      (println res)
-      res)
-    nil))
-
-(defmacro debug
-  [fmt & args]
-  (if *make-debug-code*
-    `(apply debug-fn ~fmt ~@args)))
 
 (defparser varint-item [] (token #(let [is-item (= (bit-and 128 %) 128)]
-                                    (debug "varint-item test = %b")
+                                    (debug "varint-item test = %b" is-item)
                                     is-item)))
 (defparser varint-term [] (token #(let [is-term (= (bit-and 128 %) 0)]
-                                    (debug "varint-term test = %b")
+                                    (debug "varint-term test = %b" is-term)
                                     is-term)))
 
 (defparser varint []
@@ -44,11 +17,12 @@
                (bit-shift-left result 7)))]
     (let->> [non-terms (many (varint-item))
              term (varint-term)]
-            (debug "all the non-term varints are: %s" (reduce #(str %1 " " %2) non-terms))
-            (debug "the terminator for the varint is: %s" (str term))
-            (let [result (reduce reducefn term non-terms)]
-              (debug "varint value : %s" result)
-              (always result)))))
+            (do 
+              (debug "all the non-term varints are: %s" (str non-terms)) ;(reduce #(str %1 " " %2) non-terms))
+              (debug "the terminator for the varint is: %s" (str term))
+              (let [result (reduce reducefn term non-terms)]
+                (debug "varint value : %s" result)
+                (always result))))))
 
 (defparser value []
   (token number?))
@@ -58,7 +32,7 @@
            bs (times length (value))]
           (debug "varint bytes read (total of %d) = %s"
                  length
-                 (reduce #(str %1 " " %2)))
+                 (reduce #(str %1 " " %2) bs))
           (always bs)))
 
 (defparser fixed-integral [nr]

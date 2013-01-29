@@ -69,15 +69,19 @@
 (defparser item
   []
   (let->> [t (tag)
-           val (condp (:wire-type t) =
-                 :varint (varint)
-                 :64-bit (fixed-64)
-                 :length-delimited (length-delimited)
-                 :32-bit (fixed-32))]
-          (debug "parsing item: tag value = %s\nvalue = %s"
+          val (condp = (:wire-type t)
+                :varint (varint)
+                :64-bit (fixed-64)
+                :length-delimited (length-delimited)
+                :32-bit (fixed-32))]
+          (if (nil? val)
+            (throw (java.lang.Exception. "The stream is malformed")))
+          (debug "parsing item: tag value = %s --> value = %s"
                  (str t)
                  (str val))
-          (always (assoc t :value val))))
+          (let [res (assoc t :value val)]
+            (debug "final value of item: %s" (str res))
+            (always res))))
 
 (defparser proto-stream
   []

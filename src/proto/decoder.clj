@@ -35,7 +35,7 @@
 
 (defmethod sixty-four-bit-decode :fixed64 [x] (:value x))
 (defmethod sixty-four-bit-decode :sfixed64 [x] (from-zigzag (:value x)))
-(defmethod sixty-four-bit-decode :fixed64 [x] (java.lang.Double/longBitsToDouble (:value x)))
+(defmethod sixty-four-bit-decode :double [x] (java.lang.Double/longBitsToDouble (:value x)))
 
 ;; ---------------------------------------------------
 ;; about decoding things encoded as fixed 32-bit values

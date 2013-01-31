@@ -20,7 +20,7 @@
             (do 
               (debug "all the non-term varints are: %s" (str non-terms)) ;(reduce #(str %1 " " %2) non-terms))
               (debug "the terminator for the varint is: %s" (str term))
-              (let [result (reduce reducefn term non-terms)]
+              (let [result (reduce reducefn term (reverse non-terms))]
                 (debug "varint value : %s" result)
                 (always result))))))
 
